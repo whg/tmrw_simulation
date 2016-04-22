@@ -6,6 +6,9 @@
 #include "Vehicle.h"
 #include "ofxSvg.h"
 
+#include "ofxFlock.h"
+#include "ofxGui.h"
+
 class ofApp : public ofBaseApp{
 	public:
 		void setup();
@@ -45,6 +48,8 @@ class ofApp : public ofBaseApp{
     
     ofMutex mutex;
 
+	ofxFlock flock;
 
+	ofxPanel gui;
 };
 

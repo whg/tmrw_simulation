@@ -61,11 +61,15 @@ void ofApp::setup(){
     }
     
     
-    for (int i = 0; i < 2000; i++) {
+    for (int i = 0; i < 1000; i++) {
         //        newVehicle(random(width),random(height));
-        points.push_back(new Vehicle());
+//        points.push_back(new Vehicle());
+
+		flock.addAgent(ofVec3f(ofRandom(0, ofGetWidth()), ofRandom(0, ofGetHeight()), 0));
+
     }
-    randomisePoints();
+	
+//    randomisePoints();
 //    sample.load(ofToDataPath("maintain-short.wav"));
 //    
 //    ofSoundStreamSetup(2, 0, 44100, 512, 2);
@@ -74,6 +78,14 @@ void ofApp::setup(){
 	doMove = true;
 	
 	ofBackground(0);
+	
+	gui.setup("");
+	gui.add(flock.getSettings().maxSpeed);
+	gui.add(flock.getSettings().maxForce);
+	gui.add(flock.getSettings().cohesionDistance);
+	gui.add(flock.getSettings().separationDistance);
+	gui.add(flock.getSettings().cohesionAmount);
+	gui.add(flock.getSettings().separationAmount);
 }
 
 void ofApp::sineWavePoints() {
@@ -155,38 +167,50 @@ void ofApp::draw(){
 
 	auto start = ofGetElapsedTimef();
 	
-
-	int i = 0;
-    for (vector<Vehicle*>::iterator it = points.begin(); it != points.end(); ++it) {
-
-		if (gobig) {
-			(*it)->followPath(points);
-		}
+	flock.getSettings().separationAmount = ofMap(mouseX, 0, ofGetWidth(), 0, 3);
+	flock.getSettings().cohesionAmount = ofMap(mouseY, 0, ofGetHeight(), 0, 3);
+	
+	flock.update();
+	
+	const auto &agents = flock.getAgents();
+	
+	for (const auto &agent : agents) {
 		
-        // Path following and separation are worked on in this function
-        if (doCirclePoints) {
+		thing.draw(agent->mPos, b, b);
+	}
+	
+	gui.draw();
+	
+//	int i = 0;
+//    for (vector<Vehicle*>::iterator it = points.begin(); it != points.end(); ++it) {
+//
+//		if (gobig) {
+//			(*it)->followPath(points);
+//		}
+//		
+//        // Path following and separation are worked on in this function
+//        if (doCirclePoints) {
+//			(*it)->follow(paths[i%paths.size()]);
+//			i++;			
+//		}
+//		
+//        if(doMove) {
+//			
+//			if (play) {
+//            (*it)->flock(points, ofMap(mouseX, 0, ofGetWidth(), 0, 3),
+//								 ofMap(mouseY, 0, ofGetHeight(), 0, 3));
+//			}
+//			
+//			(*it)->update();
+//
+//        }
+//		
+//		
+//		thing.draw((*it)->location, b, b); //mouseX, mouseX);
+//    }
+	
 
-
-		(*it)->follow(paths[i%paths.size()]);
-		i++;
-		
-		}
-		
-        if(doMove) {
-            (*it)->update();
-			
-			if (play) {
-            (*it)->flock(points, ofMap(mouseX, 0, ofGetWidth(), 0, 3),
-								 ofMap(mouseY, 0, ofGetHeight(), 0, 3));
-			}
-        }
-        
-		
-		thing.draw((*it)->location, b, b); //mouseX, mouseX);
-    }
-    
-
-	cout << (ofGetElapsedTimef() - start) * 1000 << ",";
+	cout << (ofGetElapsedTimef() - start) * 1000 << ", ";
     
 }
 

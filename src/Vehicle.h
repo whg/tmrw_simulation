@@ -410,8 +410,8 @@ public:
                 // Calculate vector pointing away from neighbor
 //                ofVec3f diff = ofVec3f.sub(location, other.location);
                 ofVec3f diff = location - other->location;
-                diff.normalize();
-                diff/= d;        // Weight by distance
+//                diff.normalize();
+//                diff/= d;        // Weight by distance
                 steer+= diff;
                 count++;            // Keep track of how many
             }
@@ -424,12 +424,17 @@ public:
         // As long as the vector is greater than 0
         if (steer.length() > 0) {
             // Implement Reynolds: Steering = Desired - Velocity
-            steer.normalize();
-            steer*= maxspeed;
-            steer-= velocity;
-            steer.limit(maxforce);
+
+//            steer.normalize();
+//            steer*= maxspeed;
+//            steer-= velocity;
+//            steer.limit(maxforce);
+			
+			return moveTowards(steer);
+			
         }
-        return steer;
+		return ofVec3f(0);
+//        return steer;
     }
     
     ofVec3f cohesion (vector<Vehicle*> &boids) {
@@ -483,18 +488,40 @@ public:
         ofVec3f desired = target - location;  // A vector pointing from the location to the target
         
         // Normalize desired and scale to maximum speed
-        desired.normalize();
-        desired *= maxspeed;
+//        desired.normalize();
+//        desired *= maxspeed;
+		
+//		desired.limit(maxspeed);
 
         // Steering = Desired minus Velocationity
-        ofVec3f steer = desired - velocity;
-        steer.limit(maxforce);  // Limit to maximum steering force
-        
-        return steer;
+//        ofVec3f steer = desired - velocity;
+//        steer.limit(maxforce);  // Limit to maximum steering force
+//        
+//        return steer;
+
+		return moveTowards(desired);
     }
     
-    
-    
+	
+	ofVec3f moveTowards(ofVec3f direction) {
+//		ofVec3f desired = target - location;  // A vector pointing from the location to the target
+		
+		// Normalize desired and scale to maximum speed
+		//        desired.normalize();
+		//        desired *= maxspeed;
+		
+		//		desired.limit(maxspeed);
+		
+		// Steering = Desired minus Velocationity
+		
+		return (direction - velocity).limit(maxforce);
+		
+//		ofVec3f steer = direction - velocity;
+//		steer.limit(maxforce);  // Limit to maximum steering force
+//		
+//		return steer;
+	}
+	
     void render(int rc=255, int gc=255, int bc=255) {
         // Simpler boid is just a circle
         
