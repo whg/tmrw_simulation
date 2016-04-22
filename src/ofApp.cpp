@@ -177,6 +177,7 @@ void ofApp::draw(){
 	for (const auto &agent : agents) {
 		
 		thing.draw(agent->mPos, b, b);
+//		ofDrawRectangle(agent->mPos, b, b);
 	}
 	
 	gui.draw();
@@ -211,7 +212,7 @@ void ofApp::draw(){
 	
 
 	cout << (ofGetElapsedTimef() - start) * 1000 << ", ";
-    
+	
 }
 
 //--------------------------------------------------------------
