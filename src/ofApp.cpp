@@ -69,6 +69,10 @@ void ofApp::setup(){
 
     }
 	
+	flock.addPathCollection(FollowPathCollection(svg, 5));
+	
+	flock.assignAgentsToCollection(0);
+	
 //    randomisePoints();
 //    sample.load(ofToDataPath("maintain-short.wav"));
 //    
@@ -86,6 +90,7 @@ void ofApp::setup(){
 	gui.add(flock.getSettings().separationDistance);
 	gui.add(flock.getSettings().cohesionAmount);
 	gui.add(flock.getSettings().separationAmount);
+	gui.add(flock.mFollowAmount);
 }
 
 void ofApp::sineWavePoints() {

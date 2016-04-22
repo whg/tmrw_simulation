@@ -48,7 +48,7 @@ class ofApp : public ofBaseApp{
     
     ofMutex mutex;
 
-	ofxFlock flock;
+	ofxPathFollowingFlock flock;
 
 	ofxPanel gui;
 };

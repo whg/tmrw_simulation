@@ -27,6 +27,7 @@ public:
 			for (const auto &outline : outlines) {
 				auto followPath = make_shared<FollowPath>();
 				followPath->addVertices(outline.getResampledBySpacing(resampleSpacing).getVertices());
+				mPaths.push_back(followPath);
 			}
 		}
 	}
@@ -43,16 +44,36 @@ public:
 		return bounds;
 	}
 	
-	void center(ofVec2f p = ofVec2f(0)) {
+	float getTotalDistance() const {
+		float distance = 0;
+		for (const auto path : mPaths) {
+			distance+= path->getPerimeter();
+		}
+		return distance;
+	}
+	
+	size_t getTotalVertices() const {
+		size_t total = 0;
+		for (const auto path : mPaths) {
+			total+= path->size();
+		}
+		return total;
+	}
+	
+	void centerPoints(ofVec2f p = ofVec2f(0)) {
 		auto bounds = getBoundingBox();
 		auto center = bounds.getCenter();
 		
 		for (auto path : mPaths) {
-			for (auto &vert : path.getVertices()) {
+			for (auto &vert : path->getVertices()) {
 				vert+= p - center;
 			}
 		}
 	}
+	
+	
+	
+	
 	
 };
 

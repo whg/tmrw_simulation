@@ -9,7 +9,8 @@
 #include "ofxFlock.h"
 #include "ofMain.h"
 
-ofxFlock::ofxFlock() {
+template <class AgentType>
+ofxFlock<AgentType>::ofxFlock() {
 	mAgentSettings.maxSpeed.set("maxSpeed", 1, 0.001, 5);
 	mAgentSettings.maxForce.set("maxForce", 0.1, 0.001, 3);
 	mAgentSettings.cohesionDistance.set("cohesionDistance", 200, 10, 500);
@@ -23,10 +24,11 @@ ofxFlock::ofxFlock() {
 	mCalcedCaches.store(false);
 }
 
-void ofxFlock::addAgent(ofVec3f pos) {
+template <class AgentType>
+void ofxFlock<AgentType>::addAgent(ofVec3f pos) {
 	
 	mPositions.push_back(pos);
-	auto agent = make_shared<Agent>(mPositions.back(), mAgentSettings);
+	auto agent = make_shared<AgentType>(mPositions.back(), mAgentSettings);
 	mAgents.push_back(std::move(agent));
 	mNAgents = mPositions.size();
 	
@@ -37,9 +39,9 @@ void ofxFlock::addAgent(ofVec3f pos) {
 	mSeparationCacheCounts.resize(mNAgents);
 }
 
-void ofxFlock::update() {
+template <class AgentType>
+void ofxFlock<AgentType>::update() {
 
-	
 	for (size_t i = 0; i < mNAgents; i++) {
 		auto agent = mAgents[i];
 		
@@ -63,7 +65,8 @@ void ofxFlock::update() {
 	mCalcedCaches.store(false);
 }
 
-void ofxFlock::calcCaches() {
+template <class AgentType>
+void ofxFlock<AgentType>::calcCaches() {
 	while (true) {
 		while (!mCalcedCaches.load()) {
 			
@@ -116,5 +119,71 @@ void ofxFlock::calcCaches() {
 
 		} // end mCalcedCaches == false
 	} // end infinite
+}
+
+template class ofxFlock<Agent>;
+template class ofxFlock<FollowAgent>;
+
+ofxPathFollowingFlock::ofxPathFollowingFlock() {
+	mFollowAmount.set("followAmount", 1, 0, 3);
+}
+
+void ofxPathFollowingFlock::update() {
+	
+	for (auto agent : mAgents) {
+		if (agent->mPath) {
+			agent->apply(agent->moveAlongPath() * mFollowAmount);
+			agent->update();
+		}
+	}
+	
+//
+//ofxFlock<FollowAgent>::update();
+}
+
+void ofxPathFollowingFlock::assignAgentsToCollection(int index) {
+	
+	assert(index >= 0 && index < mPathCollections.size());
+	
+	auto &collection = mPathCollections[index];
+	
+	auto totalVerts = collection.getTotalVertices();
+	
+	if (totalVerts > mAgents.size()) {
+	
+		size_t agentCounter = 0;
+		for (auto pathPtr : collection.mPaths) {
+			size_t vertexCounter = 0;
+			for (auto &vertex : pathPtr->getVertices()) {
+				auto &agent = mAgents[agentCounter++];
+				agent->mPath = pathPtr;
+				agent->mTargetIndex = vertexCounter++;
+				
+				if (agentCounter >= mAgents.size()) {
+					break;
+				}
+			}
+			if (agentCounter >= mAgents.size()) {
+				break;
+			}
+
+		}
+	}
+	else {
+		size_t vertexIndex = 0, pathIndex = 0;
+		for (size_t i = 0; i < mAgents.size(); i++) {
+			auto pathPtr = collection.mPaths[pathIndex];
+			auto &vertex = pathPtr->getVertices()[vertexIndex];
+			
+			auto &agent = mAgents[i];
+			agent->mPath = pathPtr;
+			agent->mTargetIndex = vertexIndex;
+			
+			if (++vertexIndex == pathPtr->size()) {
+				pathIndex = (pathIndex + 1) % collection.mPaths.size();
+				vertexIndex = 0;
+			}
+		}
+	}
 }
 
