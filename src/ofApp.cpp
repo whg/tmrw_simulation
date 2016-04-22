@@ -69,7 +69,9 @@ void ofApp::setup(){
 
     }
 	
-	flock.addPathCollection(FollowPathCollection(svg, 5));
+	FollowPathCollection logo(svg, 3);
+	logo.centerPoints(ofVec2f(ofGetWidth()/2, ofGetHeight()/2));
+	flock.addPathCollection(std::move(logo));
 	
 	flock.assignAgentsToCollection(0);
 	
@@ -90,7 +92,9 @@ void ofApp::setup(){
 	gui.add(flock.getSettings().separationDistance);
 	gui.add(flock.getSettings().cohesionAmount);
 	gui.add(flock.getSettings().separationAmount);
+	gui.add(flock.mDoFlock);
 	gui.add(flock.mFollowAmount);
+	gui.add(flock.mFollowType);
 }
 
 void ofApp::sineWavePoints() {

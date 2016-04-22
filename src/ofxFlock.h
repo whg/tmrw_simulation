@@ -67,6 +67,8 @@ public:
 
 	AgentSettings& getSettings() { return mAgentSettings; }
 	
+	ofParameter<bool> mDoFlock;
+	
 protected:
 	
 	std::thread mCacheThread;
@@ -89,6 +91,14 @@ protected:
 	void wrapAgents();
 };
 
+inline ofVec3f getNormalPoint(ofVec3f p, ofVec3f a, ofVec3f b) {
+	ofVec3f ap = p - a;
+	ofVec3f ab = b - a;
+	ab.normalize();
+	ab *= ap.dot(ab);
+	return a + ab;
+}
+
 struct FollowAgent : public Agent {
 	std::shared_ptr<FollowPath> mPath;
 	size_t mTargetIndex;
@@ -98,22 +108,69 @@ struct FollowAgent : public Agent {
 	mPath(nullptr),
 	mTargetIndex(0) {}
 	
-	ofVec3f moveAlongPath() {
+	ofVec3f moveToNextTarget() {
 	
-		const auto &vertices = mPath->getVertices();
-		const auto &target = vertices[mTargetIndex];
+		const auto &pathVertices = mPath->getVertices();
+		const auto &target = pathVertices[mTargetIndex];
 		
 		if (target.distance(mPos) < 3) {
-//			mTargetIndex = (mTargetIndex + 1) % vertices.size();
+			mTargetIndex = (mTargetIndex + 1) % pathVertices.size();
 		}
 		
 		return seekPosition(target);
 	
 	}
+	
+	ofVec3f moveAlongPath() {
+		
+		auto nextPosition = mPos + mVel * 5;
+		const auto &pathVerts = mPath->getVertices();
+		const auto nVerts = pathVerts.size();
+		
+		float minDist = 1e8, dist;
+		ofVec3f a, b, normalPoint, dir, target;
+		
+		for (size_t i = 0; i < nVerts; i++) {
+			
+			a = pathVerts[i];
+			b = pathVerts[(i+1) % nVerts];
+	
+			normalPoint = getNormalPoint(nextPosition, a, b);
+			
+			if (normalPoint.x < min(a.x, b.x) ||
+				normalPoint.x > max(a.x, b.x) ||
+				normalPoint.y < min(a.y, b.y) ||
+				normalPoint.y > max(a.y, b.y)) {
+				
+				normalPoint = a;
+				
+				a = b;
+				b = pathVerts[(i+2) % nVerts];
+				
+			}
+			
+			dir = b - a;
+			
+			dist = nextPosition.squareDistance(normalPoint);
+			
+			if (dist < minDist) {
+				
+				minDist = dist;
+				
+				target = normalPoint + dir * 10;
+			}
+		}
+		
+		// if minDist > path.radius?
+		
+		return seekPosition(target);
+	}
 };
 
 class ofxPathFollowingFlock : public ofxFlock<FollowAgent> {
 public:
+	
+	enum FollowType { NONE, TARGET_FOLLOW, PATH_FOLLOW };
 	
 	ofxPathFollowingFlock();
 	
@@ -127,6 +184,7 @@ public:
 	
 	
 	ofParameter<float> mFollowAmount;
+	ofParameter<int> mFollowType;
 	
 protected:
 	std::vector<FollowPathCollection> mPathCollections;

@@ -18,6 +18,7 @@ ofxFlock<AgentType>::ofxFlock() {
 	mAgentSettings.cohesionAmount.set("cohesionAmount", 1, 0, 3);
 	mAgentSettings.separationAmount.set("separationAmount", 1, 0, 3);
 	
+	mDoFlock.set("do flock", false);
 	
 	mCacheThread = std::thread(&ofxFlock::calcCaches, this);
 	mCacheThread.detach();
@@ -45,18 +46,20 @@ void ofxFlock<AgentType>::update() {
 	for (size_t i = 0; i < mNAgents; i++) {
 		auto agent = mAgents[i];
 		
-		auto cohesionCount = static_cast<float>(mCohesionCacheCounts[i]);
-		if (cohesionCount > 0) {
-			auto cohesionForce = agent->seekPosition(mCohesionCache[i] / cohesionCount);
-			
-			agent->apply(cohesionForce * mAgentSettings.cohesionAmount);
-		}
+		if (mDoFlock) {
+			auto cohesionCount = static_cast<float>(mCohesionCacheCounts[i]);
+			if (cohesionCount > 0) {
+				auto cohesionForce = agent->seekPosition(mCohesionCache[i] / cohesionCount);
+				
+				agent->apply(cohesionForce * mAgentSettings.cohesionAmount);
+			}
 
-		auto separationCount = static_cast<float>(mSeparationCacheCounts[i]);
-		if (separationCount > 0) {
-			auto separationForce = agent->seek(mSeparationCache[i] / separationCount);
-			
-			agent->apply(separationForce * mAgentSettings.separationAmount);
+			auto separationCount = static_cast<float>(mSeparationCacheCounts[i]);
+			if (separationCount > 0) {
+				auto separationForce = agent->seek(mSeparationCache[i] / separationCount);
+				
+				agent->apply(separationForce * mAgentSettings.separationAmount);
+			}
 		}
 		
 		agent->update();
@@ -126,19 +129,29 @@ template class ofxFlock<FollowAgent>;
 
 ofxPathFollowingFlock::ofxPathFollowingFlock() {
 	mFollowAmount.set("followAmount", 1, 0, 3);
+	mFollowType.set("follow type", 0, 0, 2);
 }
 
 void ofxPathFollowingFlock::update() {
 	
-	for (auto agent : mAgents) {
-		if (agent->mPath) {
-			agent->apply(agent->moveAlongPath() * mFollowAmount);
-			agent->update();
+	if (mFollowType != NONE) {
+		if (mFollowType == TARGET_FOLLOW) {
+			for (auto agent : mAgents) {
+				if (agent->mPath) {
+					agent->apply(agent->moveToNextTarget() * mFollowAmount);
+				}
+			}
+		}
+		else if (mFollowType == PATH_FOLLOW) {
+			for (auto agent : mAgents) {
+				if (agent->mPath) {
+					agent->apply(agent->moveAlongPath() * mFollowAmount);
+				}
+			}
 		}
 	}
 	
-//
-//ofxFlock<FollowAgent>::update();
+	ofxFlock<FollowAgent>::update();
 }
 
 void ofxPathFollowingFlock::assignAgentsToCollection(int index) {
