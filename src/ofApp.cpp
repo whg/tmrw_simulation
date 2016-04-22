@@ -72,6 +72,8 @@ void ofApp::setup(){
 
     mid = ofPoint(ofGetWidth()/2 - svg.getWidth()/2, ofGetHeight()/2 - svg.getHeight()/2);
 	doMove = true;
+	
+	ofBackground(0);
 }
 
 void ofApp::sineWavePoints() {
@@ -151,80 +153,11 @@ void ofApp::update(){
 //--------------------------------------------------------------
 void ofApp::draw(){
 
-//    path.display();
-//    fbo.begin();
-	
 	auto start = ofGetElapsedTimef();
 	
-	ofBackground(0);
-	ofEnableAlphaBlending();
-    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-    //	glColor4f(0, 0, 0, 1.0);
-    ofFill();
-    ofSetColor(0, 0, 0, b);
-    ofRect(0, 0, ofGetWidth(), ofGetHeight());
-    //    ofClear(0,0,0,0.01);
-    
-    glColor4f(0.3, 0.3, 0.3,0.1);
-    ofEnableBlendMode(OF_BLENDMODE_ADD);
-    int iterations = 1;
-    
-    
-    //    path.display();
-    
-//    ofTranslate(mid.x, mid.y);
 
-    ofPushMatrix();
-    ofTranslate(50, 250);
-    ofSetColor(255);
-    for(int i = 0; i < 512; i++) {
-        ofLine(i, 0, i, adata[i]*200);
-    }
-    ofPopMatrix();
-    
-//    ofSetHexColor(0xff08ff);
-    ofNoFill();
-    for (int i = 0; i < (int)outlines.size(); i++){
-        ofPolyline & line = outlines[i];
-        
-        int num = 1 * line.size();
-        
-        glBegin(GL_POINTS);
-//        ofBeginShape();
-        for (int j = 0; j < num; j++){
-//            ofVertex(line[j]);
-//            glVertex2d(line[j].x, line[j].y);
-            //            cout << line[j] << endl;
-        }
-        glEnd();
-//        ofEndShape();
-    }
-
-    
-    float v = rms*100;
-//    cout << v <<", " << ampv<< endl;
-    float t = mouseY;
-    if (v < mouseX) {
-        ampv-=t;
-    } else {
-        ampv+=t;
-    }
-    ampv = MAX(0, ampv);
-    
-    
-    float rad = 2;
-//    if (gobig) {
-//        rad = 10;
-//        gobig = false;
-//    }
-	
-    float q = ofMap(mouseX, 0, ofGetWidth(), 0, 1);
-//    cout << rms << endl;
 	int i = 0;
     for (vector<Vehicle*>::iterator it = points.begin(); it != points.end(); ++it) {
-        
-        (*it)->r = rad;
-        (*it)->randomAmount = randAmount;
 
 		if (gobig) {
 			(*it)->followPath(points);
@@ -238,10 +171,7 @@ void ofApp::draw(){
 		i++;
 		
 		}
-//        (*it)->follow();
-//        (*it)->goToTarget();
-        // Call the generic run method (update, borders, display, etc.)
-//        (*it)->run();
+		
         if(doMove) {
             (*it)->update();
 			
@@ -251,29 +181,10 @@ void ofApp::draw(){
 			}
         }
         
-        
-//        (*it)->render();
-
+		
 		thing.draw((*it)->location, b, b); //mouseX, mouseX);
     }
     
-//
-////    ofTranslate(-ofGetWidth()/2, -ofGetHeight()/2);
-////    ofScale(redSep, 0);
-////    ofTranslate(ofGetWidth()/2, ofGetHeight()/2);
-//    ofTranslate(0, -redSep);
-//    for (vector<Vehicle*>::iterator it = points.begin(); it != points.end(); ++it) {
-//        (*it)->r = 2;
-//        if(doMove) (*it)->update();
-//        (*it)->render(200, 0, 0);
-//    }
-	
-    t+= 0.05;
-    
-//    fbo.end();
-//    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-//    glColor4f(1,1,1,1);
-//    fbo.draw(0,0);
 
 	cout << (ofGetElapsedTimef() - start) * 1000 << ",";
     
