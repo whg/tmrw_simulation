@@ -22,7 +22,7 @@ ofxFlock<AgentType>::ofxFlock() {
 	
 	mCacheThread = std::thread(&ofxFlock::calcCaches, this);
 	mCacheThread.detach();
-	mCalcedCaches.store(false);
+//	mCalcedCaches.store(false);
 }
 
 template <class AgentType>
@@ -35,9 +35,6 @@ void ofxFlock<AgentType>::addAgent(ofVec3f pos) {
 	
 	mCohesionCache.resize(mNAgents);
 	mSeparationCache.resize(mNAgents);
-	
-	mCohesionCacheCounts.resize(mNAgents);
-	mSeparationCacheCounts.resize(mNAgents);
 }
 
 template <class AgentType>
@@ -47,32 +44,47 @@ void ofxFlock<AgentType>::update() {
 		auto agent = mAgents[i];
 		
 		if (mDoFlock) {
-			auto cohesionCount = static_cast<float>(mCohesionCacheCounts[i]);
+		
+//			std::unique_lock<std::mutex> locker(mCacheMutex);
+			
+			auto &cohesionData = mCohesionCache.getFrontData();
+			auto &cohesionCounts = mCohesionCache.getFrontCounts();
+			
+			auto &separationData = mSeparationCache.getFrontData();
+			auto &separationCounts = mSeparationCache.getFrontCounts();
+		
+//			locker.unlock();
+		
+			auto cohesionCount = static_cast<float>(cohesionCounts[i]);
 			if (cohesionCount > 0) {
-				auto cohesionForce = agent->seekPosition(mCohesionCache[i] / cohesionCount);
+				auto cohesionForce = agent->seekPosition(cohesionData[i] / cohesionCount);
 				
 				agent->apply(cohesionForce * mAgentSettings.cohesionAmount);
 			}
 
-			auto separationCount = static_cast<float>(mSeparationCacheCounts[i]);
+			auto separationCount = static_cast<float>(separationCounts[i]);
 			if (separationCount > 0) {
-				auto separationForce = agent->seek(mSeparationCache[i] / separationCount);
+				auto separationForce = agent->seek(separationData[i] / separationCount);
 				
 				agent->apply(separationForce * mAgentSettings.separationAmount);
 			}
+			
+//			mCalcedCaches.store(false);
+
+			mCaclCachesCondition.notify_one();
+
 		}
 		
 		agent->update();
 	}
 
-	mCalcedCaches.store(false);
 }
 
 template <class AgentType>
 void ofxFlock<AgentType>::calcCaches() {
 	while (true) {
-		while (!mCalcedCaches.load()) {
-			
+//		while (!mCalcedCaches.load()) {
+		
 			auto start = ofGetElapsedTimef();
 
 			float distSquared;
@@ -80,11 +92,17 @@ void ofxFlock<AgentType>::calcCaches() {
 			float cohestionDistance = std::pow(mAgentSettings.cohesionDistance, 2);
 			float separationDistance = std::pow(mAgentSettings.separationDistance, 2);
 			
+			auto &cohesionData = mCohesionCache.getBackData();
+			auto &cohesionCounts = mCohesionCache.getBackCounts();
+			
+			auto &separationData = mSeparationCache.getBackData();
+			auto &separationCounts = mSeparationCache.getBackCounts();
+			
 			for (size_t i = 0; i < mNAgents; i++) {
-				mCohesionCache[i].set(0);
-				mCohesionCacheCounts[i] = 0;
-				mSeparationCache[i].set(0);
-				mSeparationCacheCounts[i] = 0;
+				cohesionData[i].set(0);
+				cohesionCounts[i] = 0;
+				separationData[i].set(0);
+				separationCounts[i] = 0;
 			}
 			
 			
@@ -99,28 +117,33 @@ void ofxFlock<AgentType>::calcCaches() {
 					distSquared = positionI.squareDistance(positionJ);
 					
 					if (distSquared < cohestionDistance) {
-						mCohesionCache[i]+= positionJ;
-						mCohesionCacheCounts[i]++;
+						cohesionData[i]+= positionJ;
+						cohesionCounts[i]++;
 						
-						mCohesionCache[j]+= positionI;
-						mCohesionCacheCounts[j]++;
+						cohesionData[j]+= positionI;
+						cohesionCounts[j]++;
 						
 					}
 					
 					if (distSquared < separationDistance) {
-						mSeparationCache[i]+= (positionI - positionJ);
-						mSeparationCacheCounts[i]++;
+						separationData[i]+= (positionI - positionJ);
+						separationCounts[i]++;
 						
-						mSeparationCache[j]+= (positionJ - positionI);
-						mSeparationCacheCounts[j]++;
+						separationData[j]+= (positionJ - positionI);
+						separationCounts[j]++;
 					}
 				}
 			}
 			
 			
-			mCalcedCaches.store(true);
-
-		} // end mCalcedCaches == false
+//			mCalcedCaches.store(true);
+			std::unique_lock<std::mutex> locker(mCacheMutex);
+			mCaclCachesCondition.wait(locker);
+			
+			mCohesionCache.swap();
+			mSeparationCache.swap();
+			
+//		} // end mCalcedCaches == false
 	} // end infinite
 }
 
@@ -154,13 +177,20 @@ void ofxPathFollowingFlock::update() {
 	ofxFlock<FollowAgent>::update();
 }
 
-void ofxPathFollowingFlock::assignAgentsToCollection(int index) {
+void ofxPathFollowingFlock::assignAgentsToCollection(int index, bool assignIndividual) {
 	
 	assert(index >= 0 && index < mPathCollections.size());
 	
 	auto &collection = mPathCollections[index];
 	
+	if (assignIndividual) {
+		float totalLength = collection.getTotalLength();
+		auto distancePerAgent = totalLength / mNAgents;
+		collection.resampleBySpacing(distancePerAgent);
+	}
+	
 	auto totalVerts = collection.getTotalVertices();
+
 	
 	if (totalVerts > mAgents.size()) {
 	
@@ -198,5 +228,6 @@ void ofxPathFollowingFlock::assignAgentsToCollection(int index) {
 			}
 		}
 	}
+
 }
 

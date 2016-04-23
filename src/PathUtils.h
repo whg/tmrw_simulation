@@ -32,6 +32,14 @@ public:
 		}
 	}
 	
+	void resampleBySpacing(float spacing) {
+		for (auto path : mPaths) {
+			auto resampled = path->getResampledBySpacing(spacing);
+			path->clear();
+			path->addVertices(resampled.getVertices());
+		}
+	}
+	
 	std::vector<shared_ptr<FollowPath>> mPaths;
 	
 	ofRectangle getBoundingBox() const {
@@ -44,7 +52,7 @@ public:
 		return bounds;
 	}
 	
-	float getTotalDistance() const {
+	float getTotalLength() const {
 		float distance = 0;
 		for (const auto path : mPaths) {
 			distance+= path->getPerimeter();

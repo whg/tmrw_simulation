@@ -41,7 +41,7 @@ void ofApp::setup(){
     
 //    svg.load("unleash.svg");
 
-	svg.load("/Users/whg/Desktop/tomorrow_logo_t.svg");
+	svg.load("/Users/whg/Desktop/TMRW logo hexagon black.svg");
     for (int i = 0; i < svg.getNumPath(); i++){
         ofPath &p = svg.getPathAt(i);
         // svg defaults to non zero winding which doesn't look so good as contours
@@ -69,11 +69,11 @@ void ofApp::setup(){
 
     }
 	
-	FollowPathCollection logo(svg, 3);
+	FollowPathCollection logo(svg, 5);
 	logo.centerPoints(ofVec2f(ofGetWidth()/2, ofGetHeight()/2));
 	flock.addPathCollection(std::move(logo));
 	
-	flock.assignAgentsToCollection(0);
+	flock.assignAgentsToCollection(0, true);
 	
 //    randomisePoints();
 //    sample.load(ofToDataPath("maintain-short.wav"));

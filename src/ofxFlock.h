@@ -7,7 +7,8 @@
 #include "ofPolyline.h"
 
 #include <thread>
-#include <atomic>
+#include <mutex>
+#include <condition_variable>
 
 #include "PathUtils.h"
 
@@ -72,7 +73,9 @@ public:
 protected:
 	
 	std::thread mCacheThread;
-	std::atomic<bool> mCalcedCaches;
+	std::mutex mCacheMutex;
+	std::condition_variable mCaclCachesCondition;
+//	std::atomic<bool> mCalcedCaches;
 	
 	void calcCaches();
 	
@@ -80,11 +83,43 @@ protected:
 
 	AgentSettings mAgentSettings;
 
+	template <typename T>
+	struct PingPongCache {
+		std::vector<T> data[2];
+		std::vector<int> counts[2];
+		
+		PingPongCache(): frontIndex(0), backIndex(1) {
+			cout << "default constructed: " << frontIndex << endl;
+		}
+		
+		void resize(size_t n) {
+			for (size_t i = 0; i < 2; i++) {
+				data[i].resize(n);
+				counts[i].resize(n);
+			}
+		}
+		
+		void swap() {
+			std::swap(frontIndex, backIndex);
+		}
+		
+		std::vector<T>& getFrontData() { return data[frontIndex]; }
+		std::vector<int>& getFrontCounts() { return counts[frontIndex]; }
+
+		std::vector<T>& getBackData() { return data[backIndex]; }
+		std::vector<int>& getBackCounts() { return counts[backIndex]; }
+		
+	protected:
+		size_t frontIndex, backIndex;
+	};
+
 	std::vector<ofVec3f> mPositions;
 	std::vector<std::shared_ptr<AgentType>> mAgents;
 	
-	std::vector<ofVec3f> mCohesionCache, mSeparationCache;
-	std::vector<int> mCohesionCacheCounts, mSeparationCacheCounts;
+//	std::vector<ofVec3f> mCohesionCache, mSeparationCache;
+//	std::vector<int> mCohesionCacheCounts, mSeparationCacheCounts;
+
+	PingPongCache<ofVec3f> mCohesionCache, mSeparationCache;
 	
 	size_t mNAgents;
 		
@@ -114,7 +149,7 @@ struct FollowAgent : public Agent {
 		const auto &target = pathVertices[mTargetIndex];
 		
 		if (target.distance(mPos) < 3) {
-			mTargetIndex = (mTargetIndex + 1) % pathVertices.size();
+//			mTargetIndex = (mTargetIndex + 1) % pathVertices.size();
 		}
 		
 		return seekPosition(target);
@@ -180,7 +215,7 @@ public:
 		mPathCollections.push_back(std::move(collection));
 	}
 	
-	void assignAgentsToCollection(int index=0);
+	void assignAgentsToCollection(int index=0, bool assignIndividual=false);
 	
 	
 	ofParameter<float> mFollowAmount;
