@@ -2,8 +2,6 @@
 
 #include "ofMain.h"
 
-#include "Path.h"
-#include "Vehicle.h"
 #include "ofxSvg.h"
 
 #include "ofxFlock.h"
@@ -26,20 +24,13 @@ class ofApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
     
-    void randomisePoints();
-    void sineWavePoints();
-    void linePoints();
-    void circlePoints();
     
     int circleMult;
     float circleThresh;
     bool doCirclePoints;
     bool doMove;
     float randAmount;
-    whg::Path path, path2;
-    vector<whg::Path> paths;
-    vector<Vehicle*> points;
-    
+
     ofxSVG svg;
     vector<ofPolyline> outlines;
     
@@ -51,5 +42,7 @@ class ofApp : public ofBaseApp{
 	ofxPathFollowingFlock flock;
 
 	ofxPanel gui;
+	
+	ofShader p2lShader;
 };
 

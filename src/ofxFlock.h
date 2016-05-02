@@ -4,7 +4,6 @@
 #include <memory>
 #include "ofVec3f.h"
 #include "ofParameter.h"
-#include "ofPolyline.h"
 
 #include <thread>
 #include <mutex>
@@ -16,6 +15,14 @@ struct AgentSettings {
 	ofParameter<float> maxSpeed, maxForce;
 	ofParameter<float> cohesionDistance, separationDistance;
 	ofParameter<float> cohesionAmount, separationAmount;
+	ofParameter<bool> moveAlongTargets;
+};
+
+struct FlockMeshSettings {
+    enum FlockMeshType { LINES };
+    union {
+        float minLineDistance;
+    };
 };
 
 struct Agent {
@@ -69,6 +76,8 @@ public:
 	AgentSettings& getSettings() { return mAgentSettings; }
 	
 	ofParameter<bool> mDoFlock;
+    
+    void populateMesh(ofMesh &mesh, FlockMeshSettings settings);
 	
 protected:
 	
@@ -116,9 +125,6 @@ protected:
 	std::vector<ofVec3f> mPositions;
 	std::vector<std::shared_ptr<AgentType>> mAgents;
 	
-//	std::vector<ofVec3f> mCohesionCache, mSeparationCache;
-//	std::vector<int> mCohesionCacheCounts, mSeparationCacheCounts;
-
 	PingPongCache<ofVec3f> mCohesionCache, mSeparationCache;
 	
 	size_t mNAgents;
@@ -148,8 +154,8 @@ struct FollowAgent : public Agent {
 		const auto &pathVertices = mPath->getVertices();
 		const auto &target = pathVertices[mTargetIndex];
 		
-		if (target.distance(mPos) < 3) {
-//			mTargetIndex = (mTargetIndex + 1) % pathVertices.size();
+		if (mSettings.moveAlongTargets && target.squareDistance(mPos) < 9) {
+			mTargetIndex = (mTargetIndex + 1) % pathVertices.size();
 		}
 		
 		return seekPosition(target);

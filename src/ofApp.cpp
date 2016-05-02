@@ -1,5 +1,4 @@
 #include "ofApp.h"
-using namespace whg;
 
 float rms;
 float ampv = 0;
@@ -10,7 +9,7 @@ bool gobig = false;
 float midThres = 0.4;
 float redSep = 1.0;
 
-int skip = 2;
+int alpha = 200;
 bool play = true;
 ofPoint mid;
 
@@ -18,7 +17,8 @@ float adata[512];
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-
+//	
+	ofSetWindowShape(640, 480);
 //    path = new Path();
     float offset = 30;
 
@@ -42,24 +42,7 @@ void ofApp::setup(){
 //    svg.load("unleash.svg");
 
 	svg.load("/Users/whg/Desktop/TMRW logo hexagon black.svg");
-    for (int i = 0; i < svg.getNumPath(); i++){
-        ofPath &p = svg.getPathAt(i);
-        // svg defaults to non zero winding which doesn't look so good as contours
-        		p.setPolyWindingMode(OF_POLY_WINDING_ODD);
-        const vector<ofPolyline>& lines = p.getOutline();
-        for(int j=0;j<(int)lines.size();j++){
-			outlines.push_back(lines[j]);//.getResampledBySpacing(20));
-            paths.push_back(whg::Path());
-            paths[i].addVertices(lines[j].getResampledBySpacing(5).getVertices());
-        }
-		
-        vector<ofPoint> &pts = paths[i].getVertices();
-        for(int j=0;j<pts.size();j++){
-            pts[j].x +=ofGetWidth()/2 - svg.getWidth()/2;
-            pts[j].y += ofGetHeight()/2 - svg.getHeight()/2;
-        }
-    }
-    
+
     
     for (int i = 0; i < 1000; i++) {
         //        newVehicle(random(width),random(height));
@@ -95,72 +78,20 @@ void ofApp::setup(){
 	gui.add(flock.mDoFlock);
 	gui.add(flock.mFollowAmount);
 	gui.add(flock.mFollowType);
-}
+	gui.add(flock.getSettings().moveAlongTargets);
+//
+	ofSetLogLevel(OF_LOG_VERBOSE);
 
-void ofApp::sineWavePoints() {
-    float padding = 250;
-    float amp = (ofGetHeight() - padding*2) * 0.5;
-    float xstep = (ofGetWidth() - padding*2.0) / points.size();
-    cout << xstep << endl;
-    float y = ofGetHeight() * 0.5;
-    float x = padding;
-    float amult =  TWO_PI / points.size();
-    for (int i = 0; i < points.size(); i++) {
-        points[i]->location.x = x + i* xstep;
-        points[i]->location.y = y + sin(i*amult*2)*amp;
-    }
-}
+//	p2lShader.setGeometryInputType(GL_POINTS);
+//	p2lShader.setGeometryOutputType(GL_POINTS);
+//	p2lShader.setGeometryOutputCount(1);
 
-void ofApp::circlePoints() {
-    float padding = 250;
-    float amp = (ofGetHeight() - padding*2) * 0.5;
-    float xstep = (ofGetWidth() - padding*2.0) / points.size();
-    cout << xstep << endl;
-    float y = ofGetHeight() * 0.5;
-    float x = ofGetWidth() * 0.5;
-    float amult =  TWO_PI / points.size();
-    for (int i = 0; i < points.size(); i++) {
-        points[i]->location.x = x + cos(i*amult)*amp*2;
-        points[i]->location.y = y + sin(i*amult*circleMult)*amp;
-    }
-    circleMult++;
-    
-}
-
-
-void ofApp::linePoints() {
-    float padding = 250;
-    float xstep = (ofGetWidth() - padding*2.0) / points.size();
-    cout << xstep << endl;
-    float y = ofGetHeight() * 0.5;
-    float x = padding;
-    float amult =  TWO_PI / points.size();
-    for (int i = 0; i < points.size(); i++) {
-        points[i]->location.x = x + i* xstep;
-        points[i]->location.y = y;
-    }
-}
-
-
-void ofApp::randomisePoints() {
-    for (int i = 0; i < points.size(); i++) {
-        //        newVehicle(random(width),random(height));
-//        points.push_back(new Vehicle());
-        int pathIndex = i%paths[i%paths.size()].size();
-        points[i]->target = paths[i%paths.size()].getVertices()[pathIndex];
-        points[i]->currentPointIndex = pathIndex;
-        points[i]->path = paths[i%paths.size()];
-        int w2 = ofGetWidth() /2;
-        int h2 = ofGetHeight() /2;
-        points[i]->location = ofVec3f(ofRandom(0, w2*2), ofRandom(0, h2*2));
-    }
+//	p2lShader.load("points2lines.vert", "points2lines.frag");//, "points2lines.geom");
+//	ofLog() << "Maximum number of output vertices support is: " << p2lShader.getGeometryMaxOutputCount();
 
 }
 
 void ofApp::exit() {
-    for (int i = 0; i < points.size(); i++) {
-        delete points[i];
-    }
 }
 
 
@@ -183,13 +114,44 @@ void ofApp::draw(){
 	
 	const auto &agents = flock.getAgents();
 	
+	fbo.begin();
+	
+//	p2lShader.set
+	
+	ofSetColor(0, 0, 0, alpha);
+	ofDrawRectangle(0, 0, ofGetWidth(), ofGetHeight());
+
+//	ofBackground(120);
+	
+	ofEnableBlendMode(OF_BLENDMODE_ADD);
+//	p2lShader.begin();
+//	p2lShader.bindDefaults();
+//
+    ofSetColor(255);
+
+	ofMesh mesh;
+	int i = 0;
 	for (const auto &agent : agents) {
 		
+//		ofSetColor(200, 100, i % 255);
+		i++;
 		thing.draw(agent->mPos, b, b);
+//		mesh.addVertex(agent->mPos);
 //		ofDrawRectangle(agent->mPos, b, b);
 	}
+//
 	
+//	mesh.draw(OF_MESH_POINTS);
+
+//	ofDrawLine(100, 100, 300, 100);
+	
+	
+//	p2lShader.end();
+	fbo.end();
+	fbo.draw(0, 0);
+
 	gui.draw();
+
 	
 //	int i = 0;
 //    for (vector<Vehicle*>::iterator it = points.begin(); it != points.end(); ++it) {
@@ -220,7 +182,7 @@ void ofApp::draw(){
 //    }
 	
 
-	cout << (ofGetElapsedTimef() - start) * 1000 << ", ";
+//	cout << (ofGetElapsedTimef() - start) * 1000 << ", ";
 	
 }
 
@@ -234,17 +196,16 @@ void ofApp::keyPressed(int key){
         b--;
     }
     if(key == OF_KEY_LEFT) {
-        skip = MAX(2, skip--);
+        alpha = MAX(1, alpha--);
     }
     if(key == OF_KEY_RIGHT) {
-        skip = MIN(250, skip++);
+        alpha = MIN(250, alpha++);
     }
-//    cout << "skip = " << skip << endl;
+//    cout << "alpha = " << alpha << endl;
     if(key == 'a') play = true;
     
     
-    if(key == 'r') randomisePoints();
-    
+	
     if(key == 'a') {
 //        cout << "aaaa" << endl;
         ampv += 100;
@@ -256,14 +217,13 @@ void ofApp::keyPressed(int key){
     if(key == 'w') circleThresh+= 0.01;
     if(key == 's') circleThresh-= 0.01;
     
-    if(key == 'k') sineWavePoints();
-    if(key == 'l') linePoints();
-    if(key == ';') circlePoints();
-    if(key == 'z') circleMult = 0;
-    if(key == 'p') doCirclePoints = !doCirclePoints;
-    
+	
     if(key == 'f' || key == 'G') doMove = !doMove;
-    
+	
+	if (key == ' ') {
+		flock.assignAgentsToCollection(0, true);
+	}
+	
 //    cout << "midThesh = " << midThres;
 //    cout << " circle thres " << circleThresh << endl;
 	

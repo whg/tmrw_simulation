@@ -17,6 +17,7 @@ ofxFlock<AgentType>::ofxFlock() {
 	mAgentSettings.separationDistance.set("separationDistance", 20, 10, 500);
 	mAgentSettings.cohesionAmount.set("cohesionAmount", 1, 0, 3);
 	mAgentSettings.separationAmount.set("separationAmount", 1, 0, 3);
+	mAgentSettings.moveAlongTargets.set("move along", false);
 	
 	mDoFlock.set("do flock", false);
 	
@@ -85,73 +86,78 @@ void ofxFlock<AgentType>::calcCaches() {
 	while (true) {
 //		while (!mCalcedCaches.load()) {
 		
-			auto start = ofGetElapsedTimef();
+        auto start = ofGetElapsedTimef();
 
-			float distSquared;
-			
-			float cohestionDistance = std::pow(mAgentSettings.cohesionDistance, 2);
-			float separationDistance = std::pow(mAgentSettings.separationDistance, 2);
-			
-			auto &cohesionData = mCohesionCache.getBackData();
-			auto &cohesionCounts = mCohesionCache.getBackCounts();
-			
-			auto &separationData = mSeparationCache.getBackData();
-			auto &separationCounts = mSeparationCache.getBackCounts();
-			
-			for (size_t i = 0; i < mNAgents; i++) {
-				cohesionData[i].set(0);
-				cohesionCounts[i] = 0;
-				separationData[i].set(0);
-				separationCounts[i] = 0;
-			}
-			
-			
-			for (size_t i = 0; i < mNAgents; i++) {
-				
-				auto &positionI = mAgents[i]->mPos;
-				
-				for (size_t j = i + 1; j < mNAgents; j++) {
-					
-					auto &positionJ = mAgents[j]->mPos;
-					
-					distSquared = positionI.squareDistance(positionJ);
-					
-					if (distSquared < cohestionDistance) {
-						cohesionData[i]+= positionJ;
-						cohesionCounts[i]++;
-						
-						cohesionData[j]+= positionI;
-						cohesionCounts[j]++;
-						
-					}
-					
-					if (distSquared < separationDistance) {
-						separationData[i]+= (positionI - positionJ);
-						separationCounts[i]++;
-						
-						separationData[j]+= (positionJ - positionI);
-						separationCounts[j]++;
-					}
-				}
-			}
-			
-			
+        float distSquared;
+        
+        float cohestionDistance = std::pow(mAgentSettings.cohesionDistance, 2);
+        float separationDistance = std::pow(mAgentSettings.separationDistance, 2);
+        
+        auto &cohesionData = mCohesionCache.getBackData();
+        auto &cohesionCounts = mCohesionCache.getBackCounts();
+        
+        auto &separationData = mSeparationCache.getBackData();
+        auto &separationCounts = mSeparationCache.getBackCounts();
+        
+        for (size_t i = 0; i < mNAgents; i++) {
+            cohesionData[i].set(0);
+            cohesionCounts[i] = 0;
+            separationData[i].set(0);
+            separationCounts[i] = 0;
+        }
+        
+        
+        for (size_t i = 0; i < mNAgents; i++) {
+            
+            auto &positionI = mAgents[i]->mPos;
+            
+            for (size_t j = i + 1; j < mNAgents; j++) {
+                
+                auto &positionJ = mAgents[j]->mPos;
+                
+                distSquared = positionI.squareDistance(positionJ);
+                
+                if (distSquared < cohestionDistance) {
+                    cohesionData[i]+= positionJ;
+                    cohesionCounts[i]++;
+                    
+                    cohesionData[j]+= positionI;
+                    cohesionCounts[j]++;
+                    
+                }
+                
+                if (distSquared < separationDistance) {
+                    separationData[i]+= (positionI - positionJ);
+                    separationCounts[i]++;
+                    
+                    separationData[j]+= (positionJ - positionI);
+                    separationCounts[j]++;
+                }
+            }
+        }
+        
+        
 //			mCalcedCaches.store(true);
-			std::unique_lock<std::mutex> locker(mCacheMutex);
-			mCaclCachesCondition.wait(locker);
-			
-			mCohesionCache.swap();
-			mSeparationCache.swap();
+        std::unique_lock<std::mutex> locker(mCacheMutex);
+        mCaclCachesCondition.wait(locker);
+        
+        mCohesionCache.swap();
+        mSeparationCache.swap();
 			
 //		} // end mCalcedCaches == false
 	} // end infinite
+}
+
+void ofxFlock::populateMesh(ofMesh &mesh, FlockMeshSettings settings) {
+    
+    
 }
 
 template class ofxFlock<Agent>;
 template class ofxFlock<FollowAgent>;
 
 ofxPathFollowingFlock::ofxPathFollowingFlock() {
-	mFollowAmount.set("followAmount", 1, 0, 3);
+	mFollowAmount.set("followAmount", 1, 0, 6);
 	mFollowType.set("follow type", 0, 0, 2);
 }
 
