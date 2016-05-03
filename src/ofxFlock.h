@@ -26,10 +26,10 @@ struct FlockMeshSettings {
 };
 
 struct Agent {
-	ofVec3f mPos;
 	AgentSettings &mSettings;
 	
-	ofVec3f mVel, mAcc;
+    ofVec3f mPos, mVel;
+    mutable ofVec3f mAcc;
 	
 	Agent(ofVec3f pos, AgentSettings &settings):
 	mPos(pos),
@@ -58,6 +58,14 @@ struct Agent {
 	void apply(ofVec3f force) {
 		mAcc+= force;
 	}
+    
+    void reset() {
+        mAcc.set(0);
+    }
+    
+    void damp(float damping = 0.01f) {
+        mAcc-= mVel * damping;
+    }
 	
 };
 
@@ -66,6 +74,8 @@ class ofxFlock {
 public:
 	
 	ofxFlock();
+
+    virtual void setup(size_t width, size_t height, size_t binShift);
 
 	virtual void addAgent(ofVec3f pos=ofVec3f(0));
 	
@@ -80,12 +90,22 @@ public:
     void populateMesh(ofMesh &mesh, FlockMeshSettings settings);
 	
 protected:
+    size_t mBinShift, mXBins, mYBins;
+    std::vector<std::vector<AgentType*>> mBins;
+    
+public:
+    void fillBins();
+    std::vector<const AgentType*> getRegion(ofRectangle &region);
+    std::vector<const AgentType*> getNeighbours(ofVec2f pos, float radius);
+    void addRepulsionForce(ofVec2f pos, float radius, float amount);
+    void addAttractionForce(ofVec2f pos, float radius, float amount);
+    void addForce(ofVec2f pos, float radius, float amount);
+    
+protected:
 	
 	std::thread mCacheThread;
 	std::mutex mCacheMutex;
-	std::condition_variable mCaclCachesCondition;
-//	std::atomic<bool> mCalcedCaches;
-	
+	std::condition_variable mCaclCachesCondition;	
 	void calcCaches();
 	
 protected:
@@ -97,9 +117,7 @@ protected:
 		std::vector<T> data[2];
 		std::vector<int> counts[2];
 		
-		PingPongCache(): frontIndex(0), backIndex(1) {
-			cout << "default constructed: " << frontIndex << endl;
-		}
+		PingPongCache(): frontIndex(0), backIndex(1) {}
 		
 		void resize(size_t n) {
 			for (size_t i = 0; i < 2; i++) {
@@ -122,7 +140,6 @@ protected:
 		size_t frontIndex, backIndex;
 	};
 
-	std::vector<ofVec3f> mPositions;
 	std::vector<std::shared_ptr<AgentType>> mAgents;
 	
 	PingPongCache<ofVec3f> mCohesionCache, mSeparationCache;
@@ -130,6 +147,8 @@ protected:
 	size_t mNAgents;
 		
 	void wrapAgents();
+    
+    friend class ofApp;
 };
 
 inline ofVec3f getNormalPoint(ofVec3f p, ofVec3f a, ofVec3f b) {

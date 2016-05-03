@@ -21,22 +21,133 @@ ofxFlock<AgentType>::ofxFlock() {
 	
 	mDoFlock.set("do flock", false);
 	
-	mCacheThread = std::thread(&ofxFlock::calcCaches, this);
-	mCacheThread.detach();
-//	mCalcedCaches.store(false);
+//	mCacheThread = std::thread(&ofxFlock::calcCaches, this);
+//	mCacheThread.detach();
+}
+
+template <class AgentType>
+void ofxFlock<AgentType>::setup(size_t width, size_t height, size_t binShift) {
+    
+    float binSize = 1 << binShift;
+    mXBins = std::ceil(width / binSize);
+    mYBins = std::ceil(height / binSize);
+    mBins.resize(mXBins * mYBins);
+    mBinShift = binShift;
+}
+
+template <class AgentType>
+void ofxFlock<AgentType>::fillBins() {
+
+    for (auto &bin : mBins) {
+        bin.clear();
+    }
+    
+    size_t xBin, yBin;
+    for (const auto agent : mAgents) {
+        agent->reset();
+        auto &pos = agent->mPos;
+        xBin = static_cast<size_t>(pos.x) >> mBinShift;
+        yBin = static_cast<size_t>(pos.y) >> mBinShift;
+        if (xBin < mXBins && yBin < mYBins) {
+            mBins[yBin * mXBins + xBin].push_back(agent.get());
+        }
+    }
+}
+
+template<class AgentType>
+std::vector<const AgentType*> ofxFlock<AgentType>::getRegion(ofRectangle &region) {
+    
+    vector<const AgentType*> output;
+    back_insert_iterator<vector<const AgentType*>> inserter = back_inserter(output);
+    size_t minXBin = static_cast<size_t>(region.getLeft()) >> mBinShift;
+    size_t maxXBin = std::min((static_cast<size_t>(region.getRight()) >> mBinShift) + 1, mXBins);
+    size_t minYBin = static_cast<size_t>(region.getBottom()) >> mBinShift;
+    size_t maxYBin = std::min((static_cast<size_t>(region.getTop()) >> mBinShift) + 1, mYBins);
+    
+    for (size_t i = minXBin; i < maxXBin; i++) {
+        for (size_t j = minYBin; j < maxYBin; j++) {
+            auto &group = mBins[j * mXBins + i];
+            std::copy(group.begin(), group.end(), inserter);
+        }
+    }
+    return output;
+
+}
+
+template<class AgentType>
+std::vector<const AgentType*> ofxFlock<AgentType>::getNeighbours(ofVec2f pos, float radius) {
+
+    ofRectangle region;
+    region.setFromCenter(pos, radius * 2, radius * 2);
+    auto neighbours = getRegion(region);
+    
+    vector<const AgentType*> output;
+    float squaredRadius = radius * radius;
+    ofVec2f distance;
+    for (const AgentType *agent : neighbours) {
+        if ((agent->mPos - pos).lengthSquared() < squaredRadius) {
+            output.push_back(agent);
+        }
+    }
+    return output;
 }
 
 template <class AgentType>
 void ofxFlock<AgentType>::addAgent(ofVec3f pos) {
 	
-	mPositions.push_back(pos);
-	auto agent = make_shared<AgentType>(mPositions.back(), mAgentSettings);
+	auto agent = make_shared<AgentType>(pos, mAgentSettings);
 	mAgents.push_back(std::move(agent));
-	mNAgents = mPositions.size();
+	mNAgents = mAgents.size();
 	
 	mCohesionCache.resize(mNAgents);
 	mSeparationCache.resize(mNAgents);
 }
+
+template <class AgentType>
+void ofxFlock<AgentType>::addRepulsionForce(ofVec2f pos, float radius, float amount) {
+    addForce(pos, radius, amount);
+}
+
+template <class AgentType>
+void ofxFlock<AgentType>::addAttractionForce(ofVec2f pos, float radius, float amount) {
+    addForce(pos, radius, -amount);
+}
+
+template <class AgentType>
+void ofxFlock<AgentType>::addForce(ofVec2f pos, float radius, float amount) {
+    float minX = std::max(0.0f, pos.x - radius);
+    float minY = std::max(0.0f, pos.y - radius);
+    float maxX = pos.x + radius;
+    float maxY = pos.y + radius;
+
+    size_t minXBin = static_cast<size_t>(minX) >> mBinShift;
+    size_t minyBin = static_cast<size_t>(minY) >> mBinShift;
+    size_t maxXBin = std::min((static_cast<size_t>(maxX) >> mBinShift) + 1, mXBins);
+    size_t maxYBin = std::min((static_cast<size_t>(maxY) >> mBinShift) + 1, mYBins);
+
+    ofVec3f diff;
+    float distanceSquared, distance, maxrsq;
+    float effect;
+    float radiusSquared = radius * radius;
+    
+    for (size_t i = minXBin; i < maxXBin; i++) {
+        for (size_t j = minyBin; j < maxYBin; j++) {
+            auto &bin = mBins[j * mXBins + i];
+            for (const AgentType *agent: bin) {
+                diff = agent->mPos - pos;
+                distanceSquared = (agent->mPos - pos).lengthSquared();
+                if (distanceSquared > 0 && distanceSquared < radiusSquared) {
+                    distance = std::sqrt(distanceSquared);
+                    diff /= distance;
+                    effect = (1 - (distance / radius)) * amount;
+                    agent->mAcc += diff * effect;
+                }
+            }
+        }
+    }
+
+}
+
 
 template <class AgentType>
 void ofxFlock<AgentType>::update() {
@@ -45,16 +156,12 @@ void ofxFlock<AgentType>::update() {
 		auto agent = mAgents[i];
 		
 		if (mDoFlock) {
-		
-//			std::unique_lock<std::mutex> locker(mCacheMutex);
-			
+					
 			auto &cohesionData = mCohesionCache.getFrontData();
 			auto &cohesionCounts = mCohesionCache.getFrontCounts();
 			
 			auto &separationData = mSeparationCache.getFrontData();
 			auto &separationCounts = mSeparationCache.getFrontCounts();
-		
-//			locker.unlock();
 		
 			auto cohesionCount = static_cast<float>(cohesionCounts[i]);
 			if (cohesionCount > 0) {
@@ -70,8 +177,6 @@ void ofxFlock<AgentType>::update() {
 				agent->apply(separationForce * mAgentSettings.separationAmount);
 			}
 			
-//			mCalcedCaches.store(false);
-
 			mCaclCachesCondition.notify_one();
 
 		}
@@ -84,8 +189,6 @@ void ofxFlock<AgentType>::update() {
 template <class AgentType>
 void ofxFlock<AgentType>::calcCaches() {
 	while (true) {
-//		while (!mCalcedCaches.load()) {
-		
         auto start = ofGetElapsedTimef();
 
         float distSquared;
@@ -137,18 +240,17 @@ void ofxFlock<AgentType>::calcCaches() {
         }
         
         
-//			mCalcedCaches.store(true);
         std::unique_lock<std::mutex> locker(mCacheMutex);
         mCaclCachesCondition.wait(locker);
         
         mCohesionCache.swap();
         mSeparationCache.swap();
 			
-//		} // end mCalcedCaches == false
 	} // end infinite
 }
 
-void ofxFlock::populateMesh(ofMesh &mesh, FlockMeshSettings settings) {
+template <class AgentType>
+void ofxFlock<AgentType>::populateMesh(ofMesh &mesh, FlockMeshSettings settings) {
     
     
 }
