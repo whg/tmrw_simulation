@@ -91,15 +91,15 @@ public:
 	
 protected:
     size_t mBinShift, mXBins, mYBins;
-    std::vector<std::vector<AgentType*>> mBins;
+    std::vector<std::list<const AgentType*>> mBins;
     
 public:
     void fillBins();
-    std::vector<const AgentType*> getRegion(ofRectangle &region);
-    std::vector<const AgentType*> getNeighbours(ofVec2f pos, float radius);
+    std::list<const AgentType*> getRegion(ofRectangle &region);
+    std::list<const AgentType*> getNeighbours(ofVec2f pos, float radius);
     void addRepulsionForce(ofVec2f pos, float radius, float amount);
     void addAttractionForce(ofVec2f pos, float radius, float amount);
-    std::vector<const AgentType*> addForce(ofVec2f pos, float radius, float amount);
+    void addForce(ofVec2f pos, float radius, float amount);
     
 protected:
 	

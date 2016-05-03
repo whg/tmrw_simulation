@@ -55,10 +55,9 @@ void ofxFlock<AgentType>::fillBins() {
 }
 
 template<class AgentType>
-std::vector<const AgentType*> ofxFlock<AgentType>::getRegion(ofRectangle &region) {
+std::list<const AgentType*> ofxFlock<AgentType>::getRegion(ofRectangle &region) {
     
-    vector<const AgentType*> output;
-    back_insert_iterator<vector<const AgentType*>> inserter = back_inserter(output);
+    list<const AgentType*> output;
     size_t minXBin = static_cast<size_t>(region.getLeft()) >> mBinShift;
     size_t maxXBin = std::min((static_cast<size_t>(region.getRight()) >> mBinShift) + 1, mXBins);
     size_t minYBin = static_cast<size_t>(region.getTop()) >> mBinShift;
@@ -67,7 +66,7 @@ std::vector<const AgentType*> ofxFlock<AgentType>::getRegion(ofRectangle &region
     for (size_t i = minXBin; i < maxXBin; i++) {
         for (size_t j = minYBin; j < maxYBin; j++) {
             auto &group = mBins[j * mXBins + i];
-            std::copy(group.begin(), group.end(), inserter);
+            output.insert(output.end(), group.begin(), group.end());
         }
     }
     return output;
@@ -75,13 +74,13 @@ std::vector<const AgentType*> ofxFlock<AgentType>::getRegion(ofRectangle &region
 }
 
 template<class AgentType>
-std::vector<const AgentType*> ofxFlock<AgentType>::getNeighbours(ofVec2f pos, float radius) {
+std::list<const AgentType*> ofxFlock<AgentType>::getNeighbours(ofVec2f pos, float radius) {
 
     ofRectangle region;
     region.setFromCenter(pos, radius * 2, radius * 2);
     auto neighbours = getRegion(region);
     
-    vector<const AgentType*> output;
+    list<const AgentType*> output;
     float squaredRadius = radius * radius;
     ofVec2f distance;
     for (const AgentType *agent : neighbours) {
@@ -114,7 +113,7 @@ void ofxFlock<AgentType>::addAttractionForce(ofVec2f pos, float radius, float am
 }
 
 template <class AgentType>
-std::vector<const AgentType*> ofxFlock<AgentType>::addForce(ofVec2f pos, float radius, float amount) {
+void ofxFlock<AgentType>::addForce(ofVec2f pos, float radius, float amount) {
     float minX = std::max(0.0f, pos.x - radius);
     float minY = std::max(0.0f, pos.y - radius);
     float maxX = pos.x + radius;
@@ -130,7 +129,6 @@ std::vector<const AgentType*> ofxFlock<AgentType>::addForce(ofVec2f pos, float r
     float effect;
     float radiusSquared = radius * radius;
     
-    std::vector<const AgentType*> output;
     
     for (size_t i = minXBin; i < maxXBin; i++) {
         for (size_t j = minyBin; j < maxYBin; j++) {
@@ -143,13 +141,11 @@ std::vector<const AgentType*> ofxFlock<AgentType>::addForce(ofVec2f pos, float r
                     diff /= distance;
                     effect = (1 - (distance / radius)) * amount;
                     agent->mAcc += diff * effect;
-                    output.push_back(agent);
                 }
             }
         }
     }
 
-    return output;
 }
 
 
