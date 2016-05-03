@@ -17,7 +17,7 @@ void ofApp::setup(){
 	svg.load("/Users/whg/Desktop/TMRW logo hexagon black.svg");
 
     
-    for (int i = 0; i < 5000; i++) {
+    for (int i = 0; i < 1000; i++) {
 		flock.addAgent(ofVec3f(ofRandom(0, ofGetWidth()), ofRandom(0, ofGetHeight()), 0));
 
     }
@@ -74,19 +74,34 @@ void ofApp::draw(){
 	flock.getSettings().separationAmount = ofMap(mouseX, 0, ofGetWidth(), 0, 3);
 	flock.getSettings().cohesionAmount = ofMap(mouseY, 0, ofGetHeight(), 0, 3);
 	
-//	flock.update();
     
     flock.fillBins();
 	
 	const auto &agents = flock.getAgents();
     
+    ofMesh lineMesh;
+    lineMesh.setMode(OF_PRIMITIVE_LINES);
+    
     for (auto agent : flock.mAgents) {
+
+        auto pushAgents = flock.getNeighbours(agent->mPos, 15);
+        size_t counter = 0;
+        for (const auto *oAgent : pushAgents) {
+            lineMesh.addVertex(agent->mPos);
+            lineMesh.addVertex(oAgent->mPos);
+            if (++counter >= 5) {
+                break;
+            }
+        }
+
         
-        flock.addRepulsionForce(agent->mPos, 10, 0.1);
+//        flock.addForce(agent->mPos, 10, 0.1);
+        
+        
         agent->damp();
     }
 	
-    flock.addAttractionForce(ofVec2f(ofGetWidth() / 2, ofGetHeight() / 2), 400, 0.01);
+//    flock.addAttractionForce(ofVec2f(ofGetWidth() / 2, ofGetHeight() / 2), 400, 0.01);
     if(ofGetMousePressed()) {
         flock.addRepulsionForce(ofVec2f(mouseX, mouseY), 50, 1);
     }
@@ -95,10 +110,16 @@ void ofApp::draw(){
     for (auto agent : flock.mAgents) {
         
         mesh.addVertex(agent->mPos);
-        agent->update();
+//        agent->update();
     }
     
+    flock.update();
+
+    
     mesh.draw(OF_MESH_POINTS);
+    
+
+    lineMesh.draw(OF_MESH_WIREFRAME);
     
 //	fbo.begin();
 //	

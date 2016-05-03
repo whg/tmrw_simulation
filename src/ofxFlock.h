@@ -99,7 +99,7 @@ public:
     std::vector<const AgentType*> getNeighbours(ofVec2f pos, float radius);
     void addRepulsionForce(ofVec2f pos, float radius, float amount);
     void addAttractionForce(ofVec2f pos, float radius, float amount);
-    void addForce(ofVec2f pos, float radius, float amount);
+    std::vector<const AgentType*> addForce(ofVec2f pos, float radius, float amount);
     
 protected:
 	

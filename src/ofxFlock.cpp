@@ -21,8 +21,8 @@ ofxFlock<AgentType>::ofxFlock() {
 	
 	mDoFlock.set("do flock", false);
 	
-//	mCacheThread = std::thread(&ofxFlock::calcCaches, this);
-//	mCacheThread.detach();
+	mCacheThread = std::thread(&ofxFlock::calcCaches, this);
+	mCacheThread.detach();
 }
 
 template <class AgentType>
@@ -61,8 +61,8 @@ std::vector<const AgentType*> ofxFlock<AgentType>::getRegion(ofRectangle &region
     back_insert_iterator<vector<const AgentType*>> inserter = back_inserter(output);
     size_t minXBin = static_cast<size_t>(region.getLeft()) >> mBinShift;
     size_t maxXBin = std::min((static_cast<size_t>(region.getRight()) >> mBinShift) + 1, mXBins);
-    size_t minYBin = static_cast<size_t>(region.getBottom()) >> mBinShift;
-    size_t maxYBin = std::min((static_cast<size_t>(region.getTop()) >> mBinShift) + 1, mYBins);
+    size_t minYBin = static_cast<size_t>(region.getTop()) >> mBinShift;
+    size_t maxYBin = std::min((static_cast<size_t>(region.getBottom()) >> mBinShift) + 1, mYBins);
     
     for (size_t i = minXBin; i < maxXBin; i++) {
         for (size_t j = minYBin; j < maxYBin; j++) {
@@ -114,7 +114,7 @@ void ofxFlock<AgentType>::addAttractionForce(ofVec2f pos, float radius, float am
 }
 
 template <class AgentType>
-void ofxFlock<AgentType>::addForce(ofVec2f pos, float radius, float amount) {
+std::vector<const AgentType*> ofxFlock<AgentType>::addForce(ofVec2f pos, float radius, float amount) {
     float minX = std::max(0.0f, pos.x - radius);
     float minY = std::max(0.0f, pos.y - radius);
     float maxX = pos.x + radius;
@@ -130,6 +130,8 @@ void ofxFlock<AgentType>::addForce(ofVec2f pos, float radius, float amount) {
     float effect;
     float radiusSquared = radius * radius;
     
+    std::vector<const AgentType*> output;
+    
     for (size_t i = minXBin; i < maxXBin; i++) {
         for (size_t j = minyBin; j < maxYBin; j++) {
             auto &bin = mBins[j * mXBins + i];
@@ -141,11 +143,13 @@ void ofxFlock<AgentType>::addForce(ofVec2f pos, float radius, float amount) {
                     diff /= distance;
                     effect = (1 - (distance / radius)) * amount;
                     agent->mAcc += diff * effect;
+                    output.push_back(agent);
                 }
             }
         }
     }
 
+    return output;
 }
 
 
