@@ -17,20 +17,25 @@ public:
 	FollowPathCollection(const ofxSVG &svg, int resampleSpacing=5) {
 		add(svg, resampleSpacing);
 	}
+    
+    void add(const std::vector<ofPath> &paths, float resampleSpacing=5) {
+        for (auto path : paths) {
+            path.setPolyWindingMode(OF_POLY_WINDING_ODD);
+            const auto &outlines = path.getOutline();
+            
+            for (const auto &outline : outlines) {
+                auto followPath = make_shared<FollowPath>();
+                followPath->addVertices(outline.getResampledBySpacing(resampleSpacing).getVertices());
+                mPaths.push_back(followPath);
+            }
+        }
 
-	void add(const ofxSVG &svg, int resampleSpacing=5) {
+    }
 
-		for (auto path : svg.getPaths()) {
-			path.setPolyWindingMode(OF_POLY_WINDING_ODD);
-			const auto &outlines = path.getOutline();
-			
-			for (const auto &outline : outlines) {
-				auto followPath = make_shared<FollowPath>();
-				followPath->addVertices(outline.getResampledBySpacing(resampleSpacing).getVertices());
-				mPaths.push_back(followPath);
-			}
-		}
+	void add(const ofxSVG &svg, float resampleSpacing=5) {
+        add(svg.getPaths(), resampleSpacing);
 	}
+    
 	
 	void resampleBySpacing(float spacing) {
 		for (auto path : mPaths) {

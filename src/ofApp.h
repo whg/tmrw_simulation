@@ -11,6 +11,8 @@ public:
     void update();
     void draw();
     void exit();
+    
+    void keyPressed(int key);
 
     ofxSVG svg;
     
@@ -24,5 +26,14 @@ public:
 	ofxPanel gui;
 	
 	ofShader p2lShader;
+        
+    ofEasyCam cam;
+    
+    ofParameter<int> mAlpha;
+    ofParameter<float> mImageSize;
+    ofParameter<int> mPathIndex;
+    void pathIndexChanged(int &index);
+    
+    ofTrueTypeFont mFont;
 };
 

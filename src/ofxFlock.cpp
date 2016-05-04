@@ -9,10 +9,11 @@
 #include "ofxFlock.h"
 #include "ofMain.h"
 
+
 template <class AgentType>
 ofxFlock<AgentType>::ofxFlock() {
 	mAgentSettings.maxSpeed.set("maxSpeed", 1, 0.001, 5);
-	mAgentSettings.maxForce.set("maxForce", 0.1, 0.001, 3);
+	mAgentSettings.maxForce.set("maxForce", 0.1, 0.0001, 0.1);
 	mAgentSettings.cohesionDistance.set("cohesionDistance", 200, 10, 500);
 	mAgentSettings.separationDistance.set("separationDistance", 20, 10, 500);
 	mAgentSettings.cohesionAmount.set("cohesionAmount", 1, 0, 3);
@@ -55,7 +56,7 @@ void ofxFlock<AgentType>::fillBins() {
 }
 
 template<class AgentType>
-std::list<const AgentType*> ofxFlock<AgentType>::getRegion(ofRectangle &region) {
+std::list<const AgentType*> ofxFlock<AgentType>::getRegion(ofRectangle &region, size_t limit) {
     
     list<const AgentType*> output;
     size_t minXBin = static_cast<size_t>(region.getLeft()) >> mBinShift;
@@ -63,10 +64,13 @@ std::list<const AgentType*> ofxFlock<AgentType>::getRegion(ofRectangle &region) 
     size_t minYBin = static_cast<size_t>(region.getTop()) >> mBinShift;
     size_t maxYBin = std::min((static_cast<size_t>(region.getBottom()) >> mBinShift) + 1, mYBins);
     
-    for (size_t i = minXBin; i < maxXBin; i++) {
-        for (size_t j = minYBin; j < maxYBin; j++) {
+    size_t count = 0;
+    for (size_t i = minXBin; i < maxXBin && count < limit; i++) {
+        for (size_t j = minYBin; j < maxYBin && count < limit; j++) {
             auto &group = mBins[j * mXBins + i];
             output.insert(output.end(), group.begin(), group.end());
+            
+            count+= group.size(); // constant time in C++11
         }
     }
     return output;
@@ -74,11 +78,11 @@ std::list<const AgentType*> ofxFlock<AgentType>::getRegion(ofRectangle &region) 
 }
 
 template<class AgentType>
-std::list<const AgentType*> ofxFlock<AgentType>::getNeighbours(ofVec2f pos, float radius) {
+std::list<const AgentType*> ofxFlock<AgentType>::getNeighbours(ofVec2f pos, float radius, size_t limit) {
 
     ofRectangle region;
     region.setFromCenter(pos, radius * 2, radius * 2);
-    auto neighbours = getRegion(region);
+    auto neighbours = getRegion(region, limit);
     
     list<const AgentType*> output;
     float squaredRadius = radius * radius;
@@ -180,8 +184,9 @@ void ofxFlock<AgentType>::update() {
 			mCaclCachesCondition.notify_one();
 
 		}
-		
+//        agent->damp(0.9);
 		agent->update();
+
 	}
 
 }

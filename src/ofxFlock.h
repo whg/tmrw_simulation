@@ -8,6 +8,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <limits>
 
 #include "PathUtils.h"
 
@@ -52,7 +53,8 @@ struct Agent {
 	}
 	
 	ofVec3f seekPosition(ofVec3f target) {
-		return seek(target - mPos);
+        auto direction = target - mPos;
+		return seek(direction / direction.length());
 	}
 	
 	void apply(ofVec3f force) {
@@ -95,8 +97,8 @@ protected:
     
 public:
     void fillBins();
-    std::list<const AgentType*> getRegion(ofRectangle &region);
-    std::list<const AgentType*> getNeighbours(ofVec2f pos, float radius);
+    std::list<const AgentType*> getRegion(ofRectangle &region, size_t limit=std::numeric_limits<size_t>::max());
+    std::list<const AgentType*> getNeighbours(ofVec2f pos, float radius, size_t limit=std::numeric_limits<size_t>::max());
     void addRepulsionForce(ofVec2f pos, float radius, float amount);
     void addAttractionForce(ofVec2f pos, float radius, float amount);
     void addForce(ofVec2f pos, float radius, float amount);
@@ -173,7 +175,7 @@ struct FollowAgent : public Agent {
 		const auto &pathVertices = mPath->getVertices();
 		const auto &target = pathVertices[mTargetIndex];
 		
-		if (mSettings.moveAlongTargets && target.squareDistance(mPos) < 9) {
+		if (mSettings.moveAlongTargets && target.squareDistance(mPos) < 4) {
 			mTargetIndex = (mTargetIndex + 1) % pathVertices.size();
 		}
 		
