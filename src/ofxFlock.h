@@ -54,7 +54,7 @@ struct Agent {
 	
 	ofVec3f seekPosition(ofVec3f target) {
         auto direction = target - mPos;
-		return seek(direction / direction.length());
+        return seek(direction);// / direction.length());
 	}
 	
 	void apply(ofVec3f force) {

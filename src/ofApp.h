@@ -35,5 +35,8 @@ public:
     void pathIndexChanged(int &index);
     
     ofTrueTypeFont mFont;
+    
+    ofParameter<float> mSphereSize;
+    ofParameter<int> mSphereIterations;
 };
 

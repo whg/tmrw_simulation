@@ -13,7 +13,7 @@
 template <class AgentType>
 ofxFlock<AgentType>::ofxFlock() {
 	mAgentSettings.maxSpeed.set("maxSpeed", 1, 0.001, 5);
-	mAgentSettings.maxForce.set("maxForce", 0.1, 0.0001, 0.1);
+	mAgentSettings.maxForce.set("maxForce", 0.1, 0.001, 0.5);
 	mAgentSettings.cohesionDistance.set("cohesionDistance", 200, 10, 500);
 	mAgentSettings.separationDistance.set("separationDistance", 20, 10, 500);
 	mAgentSettings.cohesionAmount.set("cohesionAmount", 1, 0, 3);
@@ -225,7 +225,15 @@ void ofxFlock<AgentType>::calcCaches() {
                 
                 distSquared = positionI.squareDistance(positionJ);
                 
-                if (distSquared < cohestionDistance) {
+                if (distSquared < separationDistance) {
+                    separationData[i]+= (positionI - positionJ);
+                    separationCounts[i]++;
+                    
+                    separationData[j]+= (positionJ - positionI);
+                    separationCounts[j]++;
+                }
+
+                else if (distSquared < cohestionDistance) {
                     cohesionData[i]+= positionJ;
                     cohesionCounts[i]++;
                     
@@ -234,14 +242,7 @@ void ofxFlock<AgentType>::calcCaches() {
                     
                 }
                 
-                if (distSquared < separationDistance) {
-                    separationData[i]+= (positionI - positionJ);
-                    separationCounts[i]++;
-                    
-                    separationData[j]+= (positionJ - positionI);
-                    separationCounts[j]++;
-                }
-            }
+                            }
         }
         
         
@@ -264,7 +265,7 @@ template class ofxFlock<Agent>;
 template class ofxFlock<FollowAgent>;
 
 ofxPathFollowingFlock::ofxPathFollowingFlock() {
-	mFollowAmount.set("followAmount", 1, 0, 6);
+	mFollowAmount.set("followAmount", 1, 0, 10);
 	mFollowType.set("follow type", 0, 0, 2);
 }
 
