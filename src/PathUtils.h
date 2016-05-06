@@ -18,6 +18,10 @@ public:
 		add(svg, resampleSpacing);
 	}
     
+    void add(const shared_ptr<FollowPath> &followPath) {
+        mPaths.push_back(followPath);
+    }
+    
     void add(const std::vector<ofPath> &paths, float resampleSpacing=5) {
         for (auto path : paths) {
             path.setPolyWindingMode(OF_POLY_WINDING_ODD);
@@ -26,7 +30,7 @@ public:
             for (const auto &outline : outlines) {
                 auto followPath = make_shared<FollowPath>();
                 followPath->addVertices(outline.getResampledBySpacing(resampleSpacing).getVertices());
-                mPaths.push_back(followPath);
+                add(followPath);
             }
         }
 
@@ -45,14 +49,18 @@ public:
 		}
 	}
 	
-	std::vector<shared_ptr<FollowPath>> mPaths;
 	
 	ofRectangle getBoundingBox() const {
-		ofRectangle bounds;
+        ofRectangle bounds;
 		
-		for (const auto path : mPaths) {
-			bounds.growToInclude(path->getBoundingBox());
-		}
+        for (size_t i = 0; i < mPaths.size(); ++i) {
+            if (i == 0) {
+                bounds = mPaths[i]->getBoundingBox();
+            }
+            else {
+                bounds.growToInclude(mPaths[i]->getBoundingBox());
+            }
+        }
 		
 		return bounds;
 	}
@@ -85,8 +93,17 @@ public:
 	}
 	
 	
+    void rotateY(float degrees) {
+        ofVec3f axis(0, 1, 0);
+        for (auto path : mPaths) {
+            for (auto &vert : path->getVertices()) {
+                vert.rotate(degrees, axis);
+            }
+        }
+    }
 	
 	
-	
+    std::vector<shared_ptr<FollowPath>> mPaths;
+
 };
 

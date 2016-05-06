@@ -88,6 +88,9 @@ public:
 
 	AgentSettings& getSettings() { return mAgentSettings; }
 	
+    size_t size() { return mAgents.size(); }
+    
+    
 	ofParameter<bool> mDoFlock;
     
     void populateMesh(ofMesh &mesh, FlockMeshSettings settings);
@@ -251,6 +254,13 @@ public:
 		mPathCollections.push_back(std::move(collection));
 	}
 	
+    void setPathCollection(size_t index, FollowPathCollection &&collection) {
+        if (index >= mPathCollections.size()) {
+            mPathCollections.resize(index+1);
+        }
+        mPathCollections[index] = std::move(collection);
+    }
+    
 	void assignAgentsToCollection(int index=0, bool assignIndividual=false);
 	
     void cleanUpArrivedAgents();
