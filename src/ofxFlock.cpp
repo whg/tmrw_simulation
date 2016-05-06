@@ -99,12 +99,18 @@ template <class AgentType>
 void ofxFlock<AgentType>::addAgent(ofVec3f pos) {
 	
 	auto agent = make_shared<AgentType>(pos, mAgentSettings);
-	mAgents.push_back(std::move(agent));
-	mNAgents = mAgents.size();
-	
-	mCohesionCache.resize(mNAgents);
-	mSeparationCache.resize(mNAgents);
+    addAgent(agent);
 }
+
+template <class AgentType>
+void ofxFlock<AgentType>::addAgent(std::shared_ptr<AgentType> agent) {
+    mAgents.push_back(agent);
+    mNAgents = mAgents.size();
+    
+    mCohesionCache.resize(mNAgents);
+    mSeparationCache.resize(mNAgents);
+}
+
 
 template <class AgentType>
 void ofxFlock<AgentType>::addRepulsionForce(ofVec2f pos, float radius, float amount) {
@@ -266,7 +272,7 @@ template class ofxFlock<FollowAgent>;
 
 ofxPathFollowingFlock::ofxPathFollowingFlock() {
 	mFollowAmount.set("followAmount", 1, 0, 10);
-	mFollowType.set("follow type", 0, 0, 2);
+	mFollowType.set("follow type", 1, 0, 2);
 }
 
 void ofxPathFollowingFlock::update() {
@@ -306,16 +312,15 @@ void ofxPathFollowingFlock::assignAgentsToCollection(int index, bool assignIndiv
 	auto totalVerts = collection.getTotalVertices();
 
 	
-	if (totalVerts > mAgents.size()) {
+	if (totalVerts > mAgents.size() && mAgents.size() > 0) {
 	
 		size_t agentCounter = 0;
 		for (auto pathPtr : collection.mPaths) {
 			size_t vertexCounter = 0;
 			for (auto &vertex : pathPtr->getVertices()) {
 				auto &agent = mAgents[agentCounter++];
-				agent->mPath = pathPtr;
-				agent->mTargetIndex = vertexCounter++;
-				
+                agent->set(pathPtr, vertexCounter++, vertex);
+                
 				if (agentCounter >= mAgents.size()) {
 					break;
 				}
@@ -333,8 +338,7 @@ void ofxPathFollowingFlock::assignAgentsToCollection(int index, bool assignIndiv
 			auto &vertex = pathPtr->getVertices()[vertexIndex];
 			
 			auto &agent = mAgents[i];
-			agent->mPath = pathPtr;
-			agent->mTargetIndex = vertexIndex;
+            agent->set(pathPtr, vertexIndex, vertex);
 			
 			if (++vertexIndex == pathPtr->size()) {
 				pathIndex = (pathIndex + 1) % collection.mPaths.size();
@@ -343,5 +347,27 @@ void ofxPathFollowingFlock::assignAgentsToCollection(int index, bool assignIndiv
 		}
 	}
 
+}
+
+void ofxPathFollowingFlock::cleanUpArrivedAgents() {
+    int count = 0;
+    for (auto it = mAgents.begin(); it != mAgents.end();) {
+        if ((*it)->closeToTarget()) {
+            mAgents.erase(it);
+            count++;
+        }
+        else {
+            ++it;
+        }
+    }
+    
+    if (count > 0) {
+        mNAgents = mAgents.size();
+        
+        mCohesionCache.resize(mNAgents);
+        mSeparationCache.resize(mNAgents);
+    }
+    
+    printf("erased %d\n", count);
 }
 

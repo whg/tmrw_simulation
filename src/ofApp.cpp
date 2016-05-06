@@ -1,29 +1,7 @@
 #include "ofApp.h"
-//
-//import math, random
-//
-//def fibonacci_sphere(samples=1,randomize=True):
-//rnd = 1.
-//if randomize:
-//rnd = random.random() * samples
-//
-//points = []
-//offset = 2./samples
-//increment = math.pi * (3. - math.sqrt(5.));
-//
-//for i in range(samples):
-//y = ((i * offset) - 1) + (offset / 2);
-//r = math.sqrt(1 - pow(y,2))
-//
-//phi = ((i + rnd) % samples) * increment
-//
-//x = math.cos(phi) * r
-//z = math.sin(phi) * r
-//
-//points.append([x,y,z])
-//
-//return points
 
+// based on Python from:
+// http://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere
 vector<ofVec3f> fibonacciSpherePoints(size_t samples, float radius) {
     
     vector<ofVec3f> output;
@@ -65,11 +43,9 @@ void ofApp::setup(){
     
     
     
-    
-    for (int i = 0; i < 2000; i++) {
-		flock.addAgent(ofVec3f(ofRandom(-ofGetWidth(), ofGetWidth()), ofRandom(-ofGetWidth(), ofGetHeight()), ofRandom(-ofGetWidth(), ofGetHeight())));
-
-    }
+//    for (int i = 0; i < 2000; i++) {
+//		flock.addAgent(ofVec3f(ofRandom(-ofGetWidth(), ofGetWidth()), ofRandom(-ofGetWidth(), ofGetHeight()), ofRandom(-ofGetWidth(), ofGetHeight())));
+//    }
 	
 	FollowPathCollection logo(svg, 5);
     logo.centerPoints(ofVec2f(0, 0)); //ofGetWidth()/2, ofGetHeight()/2));
@@ -100,19 +76,15 @@ void ofApp::setup(){
 	gui.add(flock.getSettings().moveAlongTargets);
     gui.add(mAlpha.set("alpha", 10, 0, 200));
     gui.add(mImageSize.set("image size", 2, 1, 30));
-    gui.add(mSphereSize.set("sphere size", 100, 10, 1000));
+    gui.add(mSphereSize.set("sphere size", 1, 0, 10));
     gui.add(mSphereIterations.set("sphere iterations", 1, 0, 100));
     
     mPathIndex.addListener(this, &ofApp::pathIndexChanged);
     gui.add(mPathIndex.set("path index", 0, 0, 2));
 
     ofSetLogLevel(OF_LOG_VERBOSE);
-//	p2lShader.setGeometryInputType(GL_LINES);
-//	p2lShader.setGeometryOutputType(GL_TRIANGLE_STRIP);
-//	p2lShader.setGeometryOutputCount(4);
 
 	p2lShader.load("points2lines.vert", "points2lines.frag", "points2lines.geom");
-//	ofLog() << "Maximum number of output vertices support is: " << p2lShader.getGeometryMaxOutputCount();
 
     flock.setup(ofGetWidth(), ofGetHeight(), 3);
 
@@ -121,25 +93,72 @@ void ofApp::setup(){
 void ofApp::exit() {
 }
 
+void ofApp::createAddressPoints() {
+
+    auto points = fibonacciSpherePoints(mMacAddresses.size(), 200);
+    size_t i = 0;
+    for (auto &address : mMacAddresses) {
+        address.second = points[i++];
+    }
+}
+
 
 //--------------------------------------------------------------
-void ofApp::update(){
+void ofApp::update() {
     
 	ofSetWindowTitle(ofToString(ofGetFrameRate(), 2));
 
+    mOscReceiver.update();
+    auto &messages = mOscReceiver.getMessages();
+    float timeNow = ofGetElapsedTimef();
+    float timeDiff = mOscReceiver.getTimeDiff();
+    
+    int addedCount = 0;
+    if (messages.size() > 0) {
+        while (messages.size() > 0 && messages.front().time + timeDiff + 3 < timeNow) {
+            auto &message = messages.back();
+            
+            if (mMacAddresses.count(message.from) == 0) {
+                mMacAddresses.emplace(message.from, ofVec3f(0));
+                createAddressPoints();
+            }
+            if (mMacAddresses.count(message.to) == 0) {
+                mMacAddresses.emplace(message.to, ofVec3f(0));
+                createAddressPoints();
+            }
+            
+            auto pathKey = message.from + "-" + message.to;
+            if (mMacPaths.count(pathKey) == 0) {
+                auto path = make_shared<FollowPath>();
+                path->addVertex(mMacAddresses.at(message.from));
+                path->addVertex(mMacAddresses.at(message.to));
+                mMacPaths.emplace(pathKey, path);
+            }
+            
+            auto agent = make_shared<FollowAgent>(mMacAddresses.at(message.from), flock.getSettings());
+            agent->set(mMacPaths.at(pathKey), 1, mMacAddresses.at(message.to));
+            flock.addAgent(agent);
+            
+            messages.pop_front();
+            
+            
+            cout << "added agent for " << message.time + timeDiff  << ", " << message.time << ", " << timeNow << ", " << timeDiff << endl;
+            cout << mMacAddresses.at(message.from) << "-->" << mMacAddresses.at(message.to) << endl;
+            addedCount++;
+        }
+    }
+    
+    printf("added %d, timeNow: %f, size = %d\n", int(addedCount), timeNow, int(messages.size()));
+    
+    flock.cleanUpArrivedAgents();
+    
+//    cout << addedCount << " : " << timeNow  << endl;
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
 
 	auto start = ofGetElapsedTimef();
-	
-//	flock.getSettings().separationAmount = ofMap(mouseX, 0, ofGetWidth(), 0, 3);
-//	flock.getSettings().cohesionAmount = ofMap(mouseY, 0, ofGetHeight(), 0, 3);
-	
-
-    
-    flock.fillBins();
 	
 	const auto &agents = flock.getAgents();
     
@@ -184,10 +203,17 @@ void ofApp::draw(){
 //    pMesh.addVertices(points);
 ////    pMesh.draw(OF_MESH_POINTS);
 //
-//    ofNoFill();
-//    ofIcoSpherePrimitive sphere(mSphereSize, mSphereIterations);
+    ofNoFill();
+    ofIcoSpherePrimitive sphere(mSphereSize, mSphereIterations);
 //
-//    ofSetColor(255);
+
+    ofSetColor(255);
+    for (auto &pair : mMacAddresses) {
+        ofPushMatrix();
+        ofTranslate(pair.second);
+        sphere.drawWireframe();
+        ofPopMatrix();
+    }
 
     ofMesh mesh;
     hue = 0.4;
@@ -227,6 +253,8 @@ void ofApp::draw(){
 
 	gui.draw();
 
+    ofSetColor(255);
+    ofDrawBitmapString(ofToString(flock.getAgents().size()), 10, ofGetHeight() - 12);
 	
 }
 

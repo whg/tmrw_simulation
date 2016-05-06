@@ -80,7 +80,8 @@ public:
     virtual void setup(size_t width, size_t height, size_t binShift);
 
 	virtual void addAgent(ofVec3f pos=ofVec3f(0));
-	
+    virtual void addAgent(std::shared_ptr<AgentType> agent);
+    
 	virtual void update();
 	
 	const std::vector<std::shared_ptr<AgentType>>& getAgents() const { return mAgents; }
@@ -164,24 +165,34 @@ inline ofVec3f getNormalPoint(ofVec3f p, ofVec3f a, ofVec3f b) {
 struct FollowAgent : public Agent {
 	std::shared_ptr<FollowPath> mPath;
 	size_t mTargetIndex;
+    ofVec3f mCurrentTarget;
 	
 	FollowAgent(ofVec3f pos, AgentSettings &settings):
 	Agent(pos, settings),
 	mPath(nullptr),
 	mTargetIndex(0) {}
+    
+    void set(std::shared_ptr<FollowPath> path, size_t index, ofVec3f target) {
+        mPath = path;
+        mTargetIndex = index;
+        mCurrentTarget = target;
+    }
 	
 	ofVec3f moveToNextTarget() {
 	
-		const auto &pathVertices = mPath->getVertices();
-		const auto &target = pathVertices[mTargetIndex];
-		
-		if (mSettings.moveAlongTargets && target.squareDistance(mPos) < 4) {
+		if (mSettings.moveAlongTargets && closeToTarget()) {
+            const auto &pathVertices = mPath->getVertices();
 			mTargetIndex = (mTargetIndex + 1) % pathVertices.size();
+            mCurrentTarget = pathVertices[mTargetIndex];
 		}
 		
-		return seekPosition(target);
+		return seekPosition(mCurrentTarget);
 	
 	}
+    
+    bool closeToTarget() {
+        return mCurrentTarget.squareDistance(mPos) < 4;
+    }
 	
 	ofVec3f moveAlongPath() {
 		
@@ -222,9 +233,7 @@ struct FollowAgent : public Agent {
 				target = normalPoint + dir * 10;
 			}
 		}
-		
-		// if minDist > path.radius?
-		
+				
 		return seekPosition(target);
 	}
 };
@@ -244,6 +253,7 @@ public:
 	
 	void assignAgentsToCollection(int index=0, bool assignIndividual=false);
 	
+    void cleanUpArrivedAgents();
 	
 	ofParameter<float> mFollowAmount;
 	ofParameter<int> mFollowType;
