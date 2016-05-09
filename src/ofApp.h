@@ -94,9 +94,7 @@ public:
 	ofxPanel gui;
 	
 	ofShader p2lShader;
-        
-    ofEasyCam cam;
-    
+            
     ofParameter<int> mAlpha;
     ofParameter<float> mImageSize;
     ofParameter<int> mPathIndex;
@@ -106,11 +104,8 @@ public:
     
     ofParameter<float> mSphereSize;
     ofParameter<int> mSphereIterations;
-    
-    OscReceiver mOscReceiver;
-    unordered_map<string, ofVec3f> mMacAddresses;
-    unordered_map<string, shared_ptr<FollowPath>> mMacPaths;
-    void createAddressPoints();
+
+    ofMatrix4x4 getCurrentRotationMatrix();
     
 };
 

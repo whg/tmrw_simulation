@@ -54,7 +54,7 @@ void ofApp::setup(){
 
     mFont.load("Arial.ttf", 100, true, true, true);
     
-    for (int i = 0; i < 5000; i++) {
+    for (int i = 0; i < 10000; i++) {
 		flock.addAgent(ofVec3f(ofRandom(-ofGetWidth(), ofGetWidth()), ofRandom(-ofGetWidth(), ofGetHeight()), ofRandom(-ofGetWidth(), ofGetHeight())));
     }
 	
@@ -120,10 +120,6 @@ void ofApp::setup(){
 
 	p2lShader.load("points2lines.vert", "points2lines.frag", "points2lines.geom");
 
-
-//    cam.setOrientation(ofVec3f(180, 0, 0));
-//    cam.setPosition(0, 0, -700);
-//    -91.9529, -71.384, -612.576
     
 }
 
@@ -139,25 +135,18 @@ void ofApp::update() {
 //--------------------------------------------------------------
 void ofApp::draw(){
 
-	auto start = ofGetElapsedTimef();
-	
-	const auto &agents = flock.getAgents();
+    const auto &agents = flock.getAgents();
     
-    ofMesh lineMesh;
-    lineMesh.setMode(OF_PRIMITIVE_LINES);
-    
-
     fbo.begin();
     
     ofSetColor(0, 0, 0, mAlpha);
     ofDrawRectangle(0, 0, ofGetWidth(), ofGetHeight());
 
-//    cam.begin();
     ofTranslate(ofGetWidth()/2, ofGetHeight()/2);
 
     ofMesh mesh;
     float hue = 0.4;
-    for (auto agent : flock.mAgents) {
+    for (const auto agent : agents) {
         
         mesh.addVertex(agent->mPos);
         mesh.addVertex(agent->mPos + ofVec2f(mImageSize, 0));
@@ -177,40 +166,23 @@ void ofApp::draw(){
     p2lShader.setUniformTexture("tex", thing, 0);
     p2lShader.setUniform2f("texSize", thing.getWidth(), thing.getHeight());
     
-    ofMatrix4x4 rotationMatrix;
-    float t = ofGetElapsedTimef()*15;
-
-    int r = static_cast<int>(t);
-    float frac = t - r;
-//    if (r > 360) r-= 360;
-    r %= 360;
-    float rot = r + frac;
-    if (rot > 180) rot = 360 - rot;
-
-    cout << rot << endl;
-    rotationMatrix.rotate(rot - 90, 0, 1, 0);
-//    rotationMatrix.rotate(ofGetElapsedTimef()*5, 1, 0, 0);
-    p2lShader.setUniformMatrix4f("rotationMatrix", rotationMatrix);
+    
+    p2lShader.setUniformMatrix4f("rotationMatrix", getCurrentRotationMatrix());
     
     mesh.setMode(OF_PRIMITIVE_LINES);
     mesh.draw(OF_MESH_FILL);
 
     
     p2lShader.end();
-    
-    ofSetColor(255);
 
-//    sphere.draw(OF_MESH_WIREFRAME);
-    
-//    cam.end();
     fbo.end();
 
     fbo.draw(0, 0);
 
 	gui.draw();
 
-    ofSetColor(255);
-    ofDrawBitmapString(ofToString(flock.getAgents().size()), 10, ofGetHeight() - 12);
+//    ofSetColor(255);
+//    ofDrawBitmapString(ofToString(flock.getAgents().size()), 10, ofGetHeight() - 12);
 	
 }
 
@@ -224,10 +196,23 @@ void ofApp::pathIndexChanged(int &index) {
         FollowPathCollection fontCollection;
         auto timeStamp = ofGetTimestampString("%H:%M");
         fontCollection.add(mFont.getStringAsPoints(timeStamp));
-        fontCollection.centerPoints(ofVec2f(0, 0)); //ofGetWidth()/2, ofGetHeight()/2));
-//        fontCollection.rotateY(90);
+        fontCollection.centerPoints();
         flock.setPathCollection(2, std::move(fontCollection));
     }
 
     flock.assignAgentsToCollection(index, true);
+}
+
+ofMatrix4x4 ofApp::getCurrentRotationMatrix() {
+    ofMatrix4x4 rotationMatrix;
+    float t = ofGetElapsedTimef()*15;
+    
+    int r = static_cast<int>(t);
+    float frac = t - r;
+    r %= 360;
+    float rot = r + frac;
+    if (rot > 180) rot = 360 - rot;
+    
+    rotationMatrix.rotate(rot - 90, 0, 1, 0);
+    return rotationMatrix;
 }
