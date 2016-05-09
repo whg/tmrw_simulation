@@ -15,9 +15,6 @@ out Vertex {
 
 void main() {
 	
-    
-    
 	gl_Position = modelViewMatrix * rotationMatrix * position;
     vertex.colour = colour;
-//    gl_Position = modelViewProjectionMatrix * position;
 }

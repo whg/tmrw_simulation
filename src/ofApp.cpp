@@ -44,7 +44,7 @@ void ofApp::setup(){
     
     fbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGB32F);
 
-    thing.load("spark3.png");
+    thing.load("dot.png");
 	
     fbo.begin();
     ofClear(0,0,0,0);
