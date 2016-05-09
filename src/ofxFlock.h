@@ -77,8 +77,6 @@ public:
 	
 	ofxFlock();
 
-    virtual void setup(size_t width, size_t height, size_t binShift);
-
 	virtual void addAgent(ofVec3f pos=ofVec3f(0));
     virtual void addAgent(std::shared_ptr<AgentType> agent);
     
@@ -95,18 +93,7 @@ public:
     
     void populateMesh(ofMesh &mesh, FlockMeshSettings settings);
 	
-protected:
-    size_t mBinShift, mXBins, mYBins;
-    std::vector<std::list<const AgentType*>> mBins;
-    
-public:
-    void fillBins();
-    std::list<const AgentType*> getRegion(ofRectangle &region, size_t limit=std::numeric_limits<size_t>::max());
-    std::list<const AgentType*> getNeighbours(ofVec2f pos, float radius, size_t limit=std::numeric_limits<size_t>::max());
-    void addRepulsionForce(ofVec2f pos, float radius, float amount);
-    void addAttractionForce(ofVec2f pos, float radius, float amount);
-    void addForce(ofVec2f pos, float radius, float amount);
-    
+            
 protected:
 	
 	std::thread mCacheThread;

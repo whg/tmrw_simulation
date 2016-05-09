@@ -26,74 +26,6 @@ ofxFlock<AgentType>::ofxFlock() {
 	mCacheThread.detach();
 }
 
-template <class AgentType>
-void ofxFlock<AgentType>::setup(size_t width, size_t height, size_t binShift) {
-    
-    float binSize = 1 << binShift;
-    mXBins = std::ceil(width / binSize);
-    mYBins = std::ceil(height / binSize);
-    mBins.resize(mXBins * mYBins);
-    mBinShift = binShift;
-}
-
-template <class AgentType>
-void ofxFlock<AgentType>::fillBins() {
-
-    for (auto &bin : mBins) {
-        bin.clear();
-    }
-    
-    size_t xBin, yBin;
-    for (const auto agent : mAgents) {
-        agent->reset();
-        auto &pos = agent->mPos;
-        xBin = static_cast<size_t>(pos.x) >> mBinShift;
-        yBin = static_cast<size_t>(pos.y) >> mBinShift;
-        if (xBin < mXBins && yBin < mYBins) {
-            mBins[yBin * mXBins + xBin].push_back(agent.get());
-        }
-    }
-}
-
-template<class AgentType>
-std::list<const AgentType*> ofxFlock<AgentType>::getRegion(ofRectangle &region, size_t limit) {
-    
-    list<const AgentType*> output;
-    size_t minXBin = static_cast<size_t>(region.getLeft()) >> mBinShift;
-    size_t maxXBin = std::min((static_cast<size_t>(region.getRight()) >> mBinShift) + 1, mXBins);
-    size_t minYBin = static_cast<size_t>(region.getTop()) >> mBinShift;
-    size_t maxYBin = std::min((static_cast<size_t>(region.getBottom()) >> mBinShift) + 1, mYBins);
-    
-    size_t count = 0;
-    for (size_t i = minXBin; i < maxXBin && count < limit; i++) {
-        for (size_t j = minYBin; j < maxYBin && count < limit; j++) {
-            auto &group = mBins[j * mXBins + i];
-            output.insert(output.end(), group.begin(), group.end());
-            
-            count+= group.size(); // constant time in C++11
-        }
-    }
-    return output;
-
-}
-
-template<class AgentType>
-std::list<const AgentType*> ofxFlock<AgentType>::getNeighbours(ofVec2f pos, float radius, size_t limit) {
-
-    ofRectangle region;
-    region.setFromCenter(pos, radius * 2, radius * 2);
-    auto neighbours = getRegion(region, limit);
-    
-    list<const AgentType*> output;
-    float squaredRadius = radius * radius;
-    ofVec2f distance;
-    for (const AgentType *agent : neighbours) {
-        if ((agent->mPos - pos).lengthSquared() < squaredRadius) {
-            output.push_back(agent);
-        }
-    }
-    return output;
-}
 
 template <class AgentType>
 void ofxFlock<AgentType>::addAgent(ofVec3f pos) {
@@ -110,54 +42,6 @@ void ofxFlock<AgentType>::addAgent(std::shared_ptr<AgentType> agent) {
     mCohesionCache.resize(mNAgents);
     mSeparationCache.resize(mNAgents);
 }
-
-
-template <class AgentType>
-void ofxFlock<AgentType>::addRepulsionForce(ofVec2f pos, float radius, float amount) {
-    addForce(pos, radius, amount);
-}
-
-template <class AgentType>
-void ofxFlock<AgentType>::addAttractionForce(ofVec2f pos, float radius, float amount) {
-    addForce(pos, radius, -amount);
-}
-
-template <class AgentType>
-void ofxFlock<AgentType>::addForce(ofVec2f pos, float radius, float amount) {
-    float minX = std::max(0.0f, pos.x - radius);
-    float minY = std::max(0.0f, pos.y - radius);
-    float maxX = pos.x + radius;
-    float maxY = pos.y + radius;
-
-    size_t minXBin = static_cast<size_t>(minX) >> mBinShift;
-    size_t minyBin = static_cast<size_t>(minY) >> mBinShift;
-    size_t maxXBin = std::min((static_cast<size_t>(maxX) >> mBinShift) + 1, mXBins);
-    size_t maxYBin = std::min((static_cast<size_t>(maxY) >> mBinShift) + 1, mYBins);
-
-    ofVec3f diff;
-    float distanceSquared, distance, maxrsq;
-    float effect;
-    float radiusSquared = radius * radius;
-    
-    
-    for (size_t i = minXBin; i < maxXBin; i++) {
-        for (size_t j = minyBin; j < maxYBin; j++) {
-            auto &bin = mBins[j * mXBins + i];
-            for (const AgentType *agent: bin) {
-                diff = agent->mPos - pos;
-                distanceSquared = (agent->mPos - pos).lengthSquared();
-                if (distanceSquared > 0 && distanceSquared < radiusSquared) {
-                    distance = std::sqrt(distanceSquared);
-                    diff /= distance;
-                    effect = (1 - (distance / radius)) * amount;
-                    agent->mAcc += diff * effect;
-                }
-            }
-        }
-    }
-
-}
-
 
 template <class AgentType>
 void ofxFlock<AgentType>::update() {
