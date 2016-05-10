@@ -255,10 +255,12 @@ void ofxPathFollowingFlock::cleanUpArrivedAgents() {
 }
 
 
-bool ofxPathFollowingFlock::agentsAtDestination() {
+bool ofxPathFollowingFlock::agentsAtDestination(float distanceThreshold) {
+    
+    distanceThreshold*= distanceThreshold;
     
     for (auto agent : mAgents) {
-        if (!agent->closeToTarget()) {
+        if (!agent->closeToTarget(distanceThreshold)) {
             return false;
         }
     }

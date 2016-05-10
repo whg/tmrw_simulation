@@ -180,8 +180,8 @@ struct FollowAgent : public Agent {
 	
 	}
     
-    bool closeToTarget() {
-        return mCurrentTarget.squareDistance(mPos) < 4;
+    bool closeToTarget(float squaredDistance=4) {
+        return mCurrentTarget.squareDistance(mPos) < squaredDistance;
     }
 	
 	ofVec3f moveAlongPath() {
@@ -249,7 +249,7 @@ public:
     }
     
 	void assignAgentsToCollection(int index=0, bool assignIndividual=false);
-    bool agentsAtDestination();
+    bool agentsAtDestination(float distanceThreshold);
     
     
     void cleanUpArrivedAgents();

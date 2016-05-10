@@ -75,12 +75,15 @@ public:
     ofMutex mutex;
 
 	ofxPathFollowingFlock flock;
+    ofMesh mAgentMesh;
+
 
 	ofxPanel gui;
     bool mDrawGui;
 	
 	ofShader p2lShader;
-            
+    
+    ofParameter<bool> mCycleSettings;
     ofParameter<int> mAlpha;
     ofParameter<float> mImageSize;
     ofParameter<int> mPathIndex;
@@ -91,10 +94,14 @@ public:
     ofParameter<bool> mAgentsArrived;
     size_t mArrivedCounter;
     
+    ofParameter<float> mSecondsToWaitBeforeNext, mCloseDistanceThreshold;
+    
+    
     ofMatrix4x4 getTransformMatrix();
-    ofParameter<float> mZTrans;
   
-  
+    void getDisplayMessage();
+    
+    
 public:
     ofxPanel mSettingsPanel;
     ofxRadioGroup mSettingsGroup;

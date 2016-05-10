@@ -39,10 +39,22 @@ vector<ofVec3f> archimedianSphere(size_t samples, float radius, size_t numTurns=
 
 void ofApp::setup(){
 
-	ofSetWindowShape(1280, 720);
-    float offset = 30;
+    ofXml xml("base_settings.xml");
+    xml.setTo("base");
+    const int numAgents = xml.getIntValue("numAgents");
+    const string colourPaletteFilename = xml.getValue("colourPalette");
+    const bool paletteRandom = xml.getBoolValue("paletteRandom");
+    const int windowWidth = xml.getIntValue("windowWidth");
+    const int windowHeight = xml.getIntValue("windowHeight");
+    const string fontName = xml.getValue("fontName");
+    const int fontSize = xml.getIntValue("fontSize");
     
+    ofSetWindowShape(windowWidth, windowHeight);
+    ofSetVerticalSync(false);
+    ofSetFrameRate(60);
+
     fbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGB32F);
+
 
     thing.load("dot.png");
 	
@@ -52,10 +64,30 @@ void ofApp::setup(){
     
 	svg.load("TMRW logo hexagon black.svg");
 
-    mFont.load("Arial.ttf", 100, true, true, true);
+    mFont.load(fontName, fontSize, true, true, true);
     
-    for (int i = 0; i < 3000; i++) {
-		flock.addAgent(ofVec3f(ofRandom(-ofGetWidth(), ofGetWidth()), ofRandom(-ofGetWidth(), ofGetHeight()), ofRandom(-ofGetWidth(), ofGetHeight())));
+    mAgentMesh.setMode(OF_PRIMITIVE_LINES);
+
+    ofImage colourPalette;
+    colourPalette.load(colourPaletteFilename);
+    unsigned char *colourPalettePixels = colourPalette.getPixels().getData();
+    const int numPixels = colourPalette.getWidth() * colourPalette.getHeight();
+    
+    for (int i = 0; i < numAgents; i++) {
+//		flock.addAgent(ofVec3f(ofRandom(-ofGetWidth(), ofGetWidth()), ofRandom(-ofGetWidth(), ofGetHeight()), ofRandom(-ofGetWidth(), ofGetHeight())));
+
+        flock.addAgent(ofVec3f(0));
+
+        unsigned char *col;
+        if (paletteRandom) {
+           col = &colourPalettePixels[static_cast<size_t>(ofRandom(numPixels)) * 3];
+        }
+        else {
+            col = &colourPalettePixels[(i % numPixels) * 3];
+        }
+        ofFloatColor fcol = ofFloatColor(col[0]/255.0f, col[1]/255.0f, col[2]/255.0f);
+        mAgentMesh.addColor(fcol);
+        mAgentMesh.addColor(fcol); // add two because we're feeding lines into the geometry shader
     }
 	
     // Main Logo
@@ -85,6 +117,8 @@ void ofApp::setup(){
         path.lineTo(verts[indices[i+2]]);
         paths.push_back(path);
     }
+    
+    
     FollowPathCollection sphereCollection;
     sphereCollection.add(paths);
     flock.addPathCollection(std::move(sphereCollection));
@@ -99,6 +133,7 @@ void ofApp::setup(){
 	
 	
 	gui.setup("settings", "settings/settings.xml", 20, 300);
+    gui.add(mCycleSettings.set("cycle settings", false));
 	gui.add(flock.getSettings().maxSpeed);
 	gui.add(flock.getSettings().maxForce);
 	gui.add(flock.getSettings().cohesionDistance);
@@ -111,14 +146,14 @@ void ofApp::setup(){
 	gui.add(flock.getSettings().moveAlongTargets);
     gui.add(mAlpha.set("alpha", 10, 0, 70));
     gui.add(mImageSize.set("image size", 2, 1, 30));
-    gui.add(mZTrans.set("z trans", 1, 0.1, 4));
-    
+    gui.add(mCloseDistanceThreshold.set("distance threshold", 4, 1, 32));
+    gui.add(mSecondsToWaitBeforeNext.set("wait seconds", 1, 0.5, 10));
     
     mPathIndex.addListener(this, &ofApp::pathIndexChanged);
     gui.add(mPathIndex.set("path index", 0, 0, 4));
     gui.add(mAgentsArrived.set("agents arrived", false));
 
-	p2lShader.load("points2lines.vert", "points2lines.frag", "points2lines.geom");
+	p2lShader.load("shaders/line2image.vert", "shaders/line2image.frag", "shaders/line2image.geom");
     mDrawGui = false;
     
     populateSettings();
@@ -136,7 +171,7 @@ void ofApp::update() {
     if (ofGetFrameNum() % 10 == 0) {
         bool temp = flock.getSettings().moveAlongTargets;
         flock.getSettings().moveAlongTargets = false;
-        mAgentsArrived = flock.agentsAtDestination();
+        mAgentsArrived = flock.agentsAtDestination(mCloseDistanceThreshold);
         flock.getSettings().moveAlongTargets = temp;
         
     }
@@ -145,12 +180,16 @@ void ofApp::update() {
         ++mArrivedCounter;
     }
     
-    if (mArrivedCounter > 60) {
+    if (mCycleSettings && mArrivedCounter / 60.0 > mSecondsToWaitBeforeNext) {
         size_t nextIndex = static_cast<size_t>(ofRandom(mSettingNames.size()));
         auto &name = mSettingNames[nextIndex];
         mSettingsGroup.getBool(name).set(true);
         cout << "set to: " << name << endl;
         mArrivedCounter = 0;
+    }
+    
+    if (ofGetFrameNum() % 30 == 0) {
+        getDisplayMessage();
     }
 }
 
@@ -164,17 +203,17 @@ void ofApp::draw(){
     ofSetColor(0, 0, 0, mAlpha);
     ofDrawRectangle(0, 0, ofGetWidth(), ofGetHeight());
 
+    mAgentMesh.clearVertices();
 
-    ofMesh mesh;
     float hue = 0.4;
     for (const auto agent : agents) {
         
-        mesh.addVertex(agent->mPos);
-        mesh.addVertex(agent->mPos + ofVec2f(mImageSize, 0));
-        mesh.addColor(ofFloatColor::fromHsb(hue, 1, 1));
-        mesh.addColor(ofFloatColor::fromHsb(hue, 1, 1));
-        hue+= 0.001;
-        if (hue > 0.9) hue-= 0.5;
+        mAgentMesh.addVertex(agent->mPos);
+        mAgentMesh.addVertex(agent->mPos + ofVec2f(mImageSize, 0));
+//        mesh.addColor(ofFloatColor::fromHsb(hue, 1, 1));
+//        mesh.addColor(ofFloatColor::fromHsb(hue, 1, 1));
+//        hue+= 0.001;
+//        if (hue > 0.9) hue-= 0.5;
         
         ofSetColor(ofFloatColor::fromHsb(hue, 1, 1));
 
@@ -190,8 +229,7 @@ void ofApp::draw(){
     
     p2lShader.setUniformMatrix4f("transformMatrix", getTransformMatrix());
     
-    mesh.setMode(OF_PRIMITIVE_LINES);
-    mesh.draw(OF_MESH_FILL);
+    mAgentMesh.draw(OF_MESH_FILL);
 
     
     p2lShader.end();
@@ -205,11 +243,13 @@ void ofApp::draw(){
 	if (mDrawGui) {
         gui.draw();
         mSettingsPanel.draw();
+        
+        ofSetColor(255);
+        ofDrawBitmapString(ofToString(flock.getAgents().size()), 10, ofGetHeight() - 12);
+
     }
     
     
-//    ofSetColor(255);
-//    ofDrawBitmapString(ofToString(flock.getAgents().size()), 10, ofGetHeight() - 12);
 	
 }
 
@@ -217,6 +257,13 @@ void ofApp::draw(){
 void ofApp::keyPressed(int key) {
     if (key == ' ') mDrawGui ^= true;
     if (key == 'f') ofToggleFullscreen();
+    
+    if (key == 's') {
+        string filename = ofSystemTextBoxDialog("name the settings file:");
+        gui.saveToFile("settings/" + filename + ".xml");
+        
+        populateSettings();
+    }
 }
 
 void ofApp::pathIndexChanged(int &index) {
@@ -258,6 +305,7 @@ void ofApp::populateSettings() {
     auto &files = dir.getFiles();
     
     mSettingsGroup.setName("...");
+    mSettingsGroup.clear();
     
     for (auto file : files) {
         auto name = file.getBaseName();
@@ -267,10 +315,32 @@ void ofApp::populateSettings() {
     
     ofAddListener(mSettingsGroup.changeEvent, this, &ofApp::settingChanged);
     mSettingsPanel.setup("saved settings");
+    mSettingsPanel.clear();
     mSettingsPanel.add(mSettingsGroup);
     
 }
 
 void ofApp::settingChanged(ofxRadioGroupEventArgs &args) {
+    bool tempCycle = mCycleSettings;
     gui.loadFromFile("settings/" + args.name + ".xml");
+    mCycleSettings = tempCycle;
 }
+
+void ofApp::getDisplayMessage() {
+    
+    ofFile file("message.txt");
+    
+    ofBuffer buffer = file.readToBuffer();
+    
+    FollowPathCollection fontCollection;
+    fontCollection.add(mFont.getStringAsPoints(buffer.getText()));
+    fontCollection.centerPoints();
+    flock.setPathCollection(1, std::move(fontCollection));
+    
+    // live reload
+    if (mPathIndex == 1) {
+        flock.assignAgentsToCollection(1, true);
+    }
+    
+}
+
