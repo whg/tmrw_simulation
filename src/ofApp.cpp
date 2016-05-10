@@ -148,6 +148,7 @@ void ofApp::setup(){
 	gui.add(flock.getSettings().moveAlongTargets);
     gui.add(mAlpha.set("alpha", 10, 0, 70));
     gui.add(mImageSize.set("image size", 2, 1, 30));
+    gui.add(mRotationSpeed.set("rotation speed", 15, 1, 50));
     gui.add(mCloseDistanceThreshold.set("distance threshold", 4, 1, 320));
     gui.add(mSecondsToWaitBeforeNext.set("wait seconds", 1, 0.5, 10));
     
@@ -285,7 +286,7 @@ void ofApp::pathIndexChanged(int &index) {
 ofMatrix4x4 ofApp::getTransformMatrix() {
     ofMatrix4x4 matrix;
     
-    float t = ofGetElapsedTimef()*15;
+    float t = ofGetElapsedTimef() * mRotationSpeed;
     
     int r = static_cast<int>(t);
     float frac = t - r;

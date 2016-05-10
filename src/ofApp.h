@@ -85,7 +85,7 @@ public:
     
     ofParameter<bool> mCycleSettings;
     ofParameter<int> mAlpha;
-    ofParameter<float> mImageSize;
+    ofParameter<float> mImageSize, mRotationSpeed;
     ofParameter<int> mPathIndex;
     void pathIndexChanged(int &index);
     
