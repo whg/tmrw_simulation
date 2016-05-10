@@ -5,6 +5,7 @@
 #include "ofxFlock.h"
 #include "ofxGui.h"
 #include "ofxOsc.h"
+#include "ofxRadioGroup.h"
 
 class OscReceiver {
 public:
@@ -27,11 +28,7 @@ public:
             auto address = message.getAddress();
             
             if (address == "/time") {
-//                mCurrentTime = message.getArgAsFloat(0);
                 mCurrentTimeDiff = ofGetElapsedTimef() - message.getArgAsFloat(0);
-                
-//                auto now = ofGetElapsedTimef();
-//                cout << now << " : " << mCurrentTime << " -> " << (now - mCurrentTime) << endl;
             }
             else {
                 
@@ -43,7 +40,6 @@ public:
                 
                 mMessages.push_back(std::move(msg));
                 
-//                cout << "received message for " << msg.time << endl;
             }
         }
     }
@@ -52,17 +48,7 @@ public:
     const deque<Message>& getMessages() const { return mMessages; } // why?
     
     float getTimeDiff() const { return mCurrentTimeDiff; }
-    
-//    list<Message> getMessagesUntil(float time) {
-//        
-//        list<Message> output;
-//        while (mMessages.back().time < time) {
-//            output.push_back(mMessages.back());
-//            mMessages.pop_back();
-//        }
-//        
-//        return output;
-//    }
+
 
     
 protected:
@@ -70,7 +56,6 @@ protected:
     
     deque<Message> mMessages;
     float mCurrentTimeDiff;
-//    unordered_map<string, Message> mMessages;
 };
 
 class ofApp : public ofBaseApp{
@@ -90,11 +75,15 @@ public:
     ofMutex mutex;
 
 	ofxPathFollowingFlock flock;
+    ofMesh mAgentMesh;
+
 
 	ofxPanel gui;
+    bool mDrawGui;
 	
 	ofShader p2lShader;
-            
+    
+    ofParameter<bool> mCycleSettings;
     ofParameter<int> mAlpha;
     ofParameter<float> mImageSize;
     ofParameter<int> mPathIndex;
@@ -102,11 +91,24 @@ public:
     
     ofTrueTypeFont mFont;
     
-    ofParameter<float> mSphereSize;
-    ofParameter<int> mSphereIterations;
-
-    ofMatrix4x4 getCurrentRotationMatrix();
+    ofParameter<bool> mAgentsArrived;
+    size_t mArrivedCounter;
     
+    ofParameter<float> mSecondsToWaitBeforeNext, mCloseDistanceThreshold;
+    
+    
+    ofMatrix4x4 getTransformMatrix();
+  
+    void getDisplayMessage();
+    
+    
+public:
+    ofxPanel mSettingsPanel;
+    ofxRadioGroup mSettingsGroup;
+    vector<string> mSettingNames;
+    
+    void populateSettings();
+    void settingChanged(ofxRadioGroupEventArgs &args);
 };
 
 

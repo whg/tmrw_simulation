@@ -1,0 +1,19 @@
+<settings>
+	<cycle_settings>0</cycle_settings>
+	<maxSpeed max="5" min="0.001">1</maxSpeed>
+	<maxForce max="0.5" min="0.001">0.1</maxForce>
+	<cohesionDistance max="500" min="10">200</cohesionDistance>
+	<separationDistance max="500" min="10">20</separationDistance>
+	<cohesionAmount max="3" min="0">1</cohesionAmount>
+	<separationAmount max="3" min="0">1</separationAmount>
+	<do_flock>0</do_flock>
+	<followAmount max="10" min="0">9.15</followAmount>
+	<follow_type max="2" min="0">1</follow_type>
+	<move_along>1</move_along>
+	<alpha max="70" min="0">10</alpha>
+	<image_size max="30" min="1">5.06</image_size>
+	<distance_threshold max="32" min="1">4</distance_threshold>
+	<wait_seconds max="10" min="0.5">1</wait_seconds>
+	<path_index max="4" min="0">0</path_index>
+	<agents_arrived>1</agents_arrived>
+</settings>

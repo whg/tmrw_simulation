@@ -252,6 +252,17 @@ void ofxPathFollowingFlock::cleanUpArrivedAgents() {
         mSeparationCache.resize(mNAgents);
     }
     
-    printf("erased %d\n", count);
 }
 
+
+bool ofxPathFollowingFlock::agentsAtDestination(float distanceThreshold) {
+    
+    distanceThreshold*= distanceThreshold;
+    
+    for (auto agent : mAgents) {
+        if (!agent->closeToTarget(distanceThreshold)) {
+            return false;
+        }
+    }
+    return true;
+}
