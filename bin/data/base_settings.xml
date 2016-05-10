@@ -6,4 +6,5 @@
   <windowHeight>1280</windowHeight>
   <fontName>fonts/CeraStencilBasic-Black.ttf</fontName>
   <fontSize>70</fontSize>
+  <production>0</production>
 </base>

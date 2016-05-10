@@ -49,6 +49,7 @@ void ofApp::setup(){
     const int windowHeight = xml.getIntValue("windowHeight");
     const string fontName = xml.getValue("fontName");
     const int fontSize = xml.getIntValue("fontSize");
+    const bool production = xml.getBoolValue("production");
     
     ofSetWindowShape(windowWidth, windowHeight);
     ofSetVerticalSync(false);
@@ -155,10 +156,15 @@ void ofApp::setup(){
     gui.add(mAgentsArrived.set("agents arrived", false));
 
 	p2lShader.load("shaders/line2image.vert", "shaders/line2image.frag", "shaders/line2image.geom");
-    mDrawGui = false;
-    
+
+    mDrawGui = true;
     populateSettings();
     mArrivedCounter = 0;
+    
+    if (production) {
+        mDrawGui = false;
+        ofSetFullscreen(true);
+    }
 }
 
 void ofApp::exit() {

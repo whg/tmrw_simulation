@@ -36,5 +36,7 @@ Edit the `data/base_settings.xml` file for things like:
 * Colour palette filename (and if it should cycle or choose randomly)
 * The font filename & size
 
+The `production` field will launch the app fullscreen and with no GUI
+
 
 
