@@ -1,9 +1,9 @@
 <base>
   <numAgents>5678</numAgents>
   <colourPalette>colour_palette.jpg</colourPalette>
-  <paletteRandom>1</paletteRandom>
-  <windowWidth>1280</windowWidth>
-  <windowHeight>720</windowHeight>
+  <paletteRandom>0</paletteRandom>
+  <windowWidth>720</windowWidth>
+  <windowHeight>1280</windowHeight>
   <fontName>Arial.ttf</fontName>
   <fontSize>70</fontSize>
 </base>

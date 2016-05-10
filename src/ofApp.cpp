@@ -147,7 +147,7 @@ void ofApp::setup(){
 	gui.add(flock.getSettings().moveAlongTargets);
     gui.add(mAlpha.set("alpha", 10, 0, 70));
     gui.add(mImageSize.set("image size", 2, 1, 30));
-    gui.add(mCloseDistanceThreshold.set("distance threshold", 4, 1, 32));
+    gui.add(mCloseDistanceThreshold.set("distance threshold", 4, 1, 320));
     gui.add(mSecondsToWaitBeforeNext.set("wait seconds", 1, 0.5, 10));
     
     mPathIndex.addListener(this, &ofApp::pathIndexChanged);
@@ -328,9 +328,9 @@ void ofApp::getDisplayMessage() {
     ofFile file("message.txt");
     
     ofBuffer buffer = file.readToBuffer();
-    
+	auto text = buffer.getText();
     FollowPathCollection fontCollection;
-    fontCollection.add(mFont.getStringAsPoints(buffer.getText()));
+    fontCollection.add(mFont.getStringAsPoints(text));
     fontCollection.centerPoints();
     flock.setPathCollection(1, std::move(fontCollection));
     

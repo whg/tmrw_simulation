@@ -110,6 +110,3 @@ public:
     void populateSettings();
     void settingChanged(ofxRadioGroupEventArgs &args);
 };
-
-
-
