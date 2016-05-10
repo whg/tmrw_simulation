@@ -249,7 +249,9 @@ public:
     }
     
 	void assignAgentsToCollection(int index=0, bool assignIndividual=false);
-	
+    bool agentsAtDestination();
+    
+    
     void cleanUpArrivedAgents();
 	
 	ofParameter<float> mFollowAmount;

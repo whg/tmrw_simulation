@@ -50,11 +50,11 @@ void ofApp::setup(){
     ofClear(0,0,0,0);
     fbo.end();
     
-	svg.load("/Users/whg/Desktop/TMRW logo hexagon black.svg");
+	svg.load("TMRW logo hexagon black.svg");
 
     mFont.load("Arial.ttf", 100, true, true, true);
     
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 3000; i++) {
 		flock.addAgent(ofVec3f(ofRandom(-ofGetWidth(), ofGetWidth()), ofRandom(-ofGetWidth(), ofGetHeight()), ofRandom(-ofGetWidth(), ofGetHeight())));
     }
 	
@@ -98,7 +98,7 @@ void ofApp::setup(){
     flock.addPathCollection(std::move(spiralCollection));
 	
 	
-	gui.setup("");
+	gui.setup("settings", "settings/settings.xml", 20, 300);
 	gui.add(flock.getSettings().maxSpeed);
 	gui.add(flock.getSettings().maxForce);
 	gui.add(flock.getSettings().cohesionDistance);
@@ -111,16 +111,18 @@ void ofApp::setup(){
 	gui.add(flock.getSettings().moveAlongTargets);
     gui.add(mAlpha.set("alpha", 10, 0, 70));
     gui.add(mImageSize.set("image size", 2, 1, 30));
-    gui.add(mSphereSize.set("sphere size", 1, 0, 1000));
-    gui.add(mSphereIterations.set("sphere iterations", 1, 0, 4));
+    gui.add(mZTrans.set("z trans", 1, 0.1, 4));
+    
     
     mPathIndex.addListener(this, &ofApp::pathIndexChanged);
     gui.add(mPathIndex.set("path index", 0, 0, 4));
-
+    gui.add(mAgentsArrived.set("agents arrived", false));
 
 	p2lShader.load("points2lines.vert", "points2lines.frag", "points2lines.geom");
-
+    mDrawGui = false;
     
+    populateSettings();
+    mArrivedCounter = 0;
 }
 
 void ofApp::exit() {
@@ -130,6 +132,26 @@ void ofApp::exit() {
 void ofApp::update() {
     
 	ofSetWindowTitle(ofToString(ofGetFrameRate(), 2));
+    
+    if (ofGetFrameNum() % 10 == 0) {
+        bool temp = flock.getSettings().moveAlongTargets;
+        flock.getSettings().moveAlongTargets = false;
+        mAgentsArrived = flock.agentsAtDestination();
+        flock.getSettings().moveAlongTargets = temp;
+        
+    }
+    
+    if (mAgentsArrived) {
+        ++mArrivedCounter;
+    }
+    
+    if (mArrivedCounter > 60) {
+        size_t nextIndex = static_cast<size_t>(ofRandom(mSettingNames.size()));
+        auto &name = mSettingNames[nextIndex];
+        mSettingsGroup.getBool(name).set(true);
+        cout << "set to: " << name << endl;
+        mArrivedCounter = 0;
+    }
 }
 
 //--------------------------------------------------------------
@@ -142,7 +164,6 @@ void ofApp::draw(){
     ofSetColor(0, 0, 0, mAlpha);
     ofDrawRectangle(0, 0, ofGetWidth(), ofGetHeight());
 
-    ofTranslate(ofGetWidth()/2, ofGetHeight()/2);
 
     ofMesh mesh;
     float hue = 0.4;
@@ -167,7 +188,7 @@ void ofApp::draw(){
     p2lShader.setUniform2f("texSize", thing.getWidth(), thing.getHeight());
     
     
-    p2lShader.setUniformMatrix4f("rotationMatrix", getCurrentRotationMatrix());
+    p2lShader.setUniformMatrix4f("transformMatrix", getTransformMatrix());
     
     mesh.setMode(OF_PRIMITIVE_LINES);
     mesh.draw(OF_MESH_FILL);
@@ -175,12 +196,18 @@ void ofApp::draw(){
     
     p2lShader.end();
 
+
     fbo.end();
 
     fbo.draw(0, 0);
 
-	gui.draw();
 
+	if (mDrawGui) {
+        gui.draw();
+        mSettingsPanel.draw();
+    }
+    
+    
 //    ofSetColor(255);
 //    ofDrawBitmapString(ofToString(flock.getAgents().size()), 10, ofGetHeight() - 12);
 	
@@ -188,6 +215,8 @@ void ofApp::draw(){
 
 
 void ofApp::keyPressed(int key) {
+    if (key == ' ') mDrawGui ^= true;
+    if (key == 'f') ofToggleFullscreen();
 }
 
 void ofApp::pathIndexChanged(int &index) {
@@ -203,8 +232,9 @@ void ofApp::pathIndexChanged(int &index) {
     flock.assignAgentsToCollection(index, true);
 }
 
-ofMatrix4x4 ofApp::getCurrentRotationMatrix() {
-    ofMatrix4x4 rotationMatrix;
+ofMatrix4x4 ofApp::getTransformMatrix() {
+    ofMatrix4x4 matrix;
+    
     float t = ofGetElapsedTimef()*15;
     
     int r = static_cast<int>(t);
@@ -213,6 +243,34 @@ ofMatrix4x4 ofApp::getCurrentRotationMatrix() {
     float rot = r + frac;
     if (rot > 180) rot = 360 - rot;
     
-    rotationMatrix.rotate(rot - 90, 0, 1, 0);
-    return rotationMatrix;
+    float s = ofGetElapsedTimef() * 0.05;
+    float ss = sin(s) * 0.5 + 1.5;
+    
+    matrix.rotate(rot - 90, 0, 1, 0);
+    matrix.scale(ss, ss, ss);
+    matrix.translate(ofGetWidth()/2, ofGetHeight()/2, 0);
+    
+    return matrix;
+}
+
+void ofApp::populateSettings() {
+    ofDirectory dir("settings");
+    auto &files = dir.getFiles();
+    
+    mSettingsGroup.setName("...");
+    
+    for (auto file : files) {
+        auto name = file.getBaseName();
+        mSettingsGroup.addChoice(name);
+        mSettingNames.push_back(name);
+    }
+    
+    ofAddListener(mSettingsGroup.changeEvent, this, &ofApp::settingChanged);
+    mSettingsPanel.setup("saved settings");
+    mSettingsPanel.add(mSettingsGroup);
+    
+}
+
+void ofApp::settingChanged(ofxRadioGroupEventArgs &args) {
+    gui.loadFromFile("settings/" + args.name + ".xml");
 }
