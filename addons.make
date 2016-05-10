@@ -1,3 +1,3 @@
 ofxGui
-ofxSvg
 ofxOsc
+ofxSvg

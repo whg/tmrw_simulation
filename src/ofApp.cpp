@@ -41,6 +41,7 @@ void ofApp::setup(){
 
 	ofSetWindowShape(1280, 720);
     float offset = 30;
+	ofSetFrameRate(60);
     
     fbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGB32F);
 
@@ -50,7 +51,7 @@ void ofApp::setup(){
     ofClear(0,0,0,0);
     fbo.end();
     
-	svg.load("/Users/whg/Desktop/TMRW logo hexagon black.svg");
+	svg.load("TMRW logo hexagon black.svg");
 
     mFont.load("Arial.ttf", 100, true, true, true);
     
@@ -150,8 +151,8 @@ void ofApp::draw(){
         
         mesh.addVertex(agent->mPos);
         mesh.addVertex(agent->mPos + ofVec2f(mImageSize, 0));
-        mesh.addColor(ofFloatColor::fromHsb(hue, 1, 1));
-        mesh.addColor(ofFloatColor::fromHsb(hue, 1, 1));
+        mesh.addColor(ofFloatColor::fromHsb(hue, 0.1, 1));
+        mesh.addColor(ofFloatColor::fromHsb(hue, 0.1, 1));
         hue+= 0.001;
         if (hue > 0.9) hue-= 0.5;
         
