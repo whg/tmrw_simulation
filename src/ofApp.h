@@ -95,7 +95,8 @@ public:
     size_t mArrivedCounter;
     
     ofParameter<float> mSecondsToWaitBeforeNext, mCloseDistanceThreshold;
-    
+    ofParameter<float> mForceChangeSeconds;
+    float mLastChangeTime;
     
     ofMatrix4x4 getTransformMatrix();
   

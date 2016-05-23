@@ -151,6 +151,7 @@ void ofApp::setup(){
     gui.add(mRotationSpeed.set("rotation speed", 15, 1, 50));
     gui.add(mCloseDistanceThreshold.set("distance threshold", 4, 1, 320));
     gui.add(mSecondsToWaitBeforeNext.set("wait seconds", 1, 0.5, 10));
+    gui.add(mForceChangeSeconds.set("force change seconds", 90, 5, 90));
     
     mPathIndex.addListener(this, &ofApp::pathIndexChanged);
     gui.add(mPathIndex.set("path index", 0, 0, 4));
@@ -161,6 +162,7 @@ void ofApp::setup(){
     mDrawGui = true;
     populateSettings();
     mArrivedCounter = 0;
+    mLastChangeTime = 0;
     
     if (production) {
         mDrawGui = false;
@@ -188,12 +190,15 @@ void ofApp::update() {
         ++mArrivedCounter;
     }
     
-    if (mCycleSettings && mArrivedCounter / 60.0 > mSecondsToWaitBeforeNext) {
+    if (mCycleSettings &&
+        (mArrivedCounter / 60.0 > mSecondsToWaitBeforeNext ||
+        (ofGetElapsedTimef() - mLastChangeTime) > mForceChangeSeconds)) {
         size_t nextIndex = static_cast<size_t>(ofRandom(mSettingNames.size()));
         auto &name = mSettingNames[nextIndex];
         mSettingsGroup.getBool(name).set(true);
         cout << "set to: " << name << endl;
         mArrivedCounter = 0;
+        mLastChangeTime = ofGetElapsedTimef();
     }
     
     if (ofGetFrameNum() % 30 == 0) {

@@ -49,7 +49,7 @@ struct Agent {
 	}
 	
 	ofVec3f seek(ofVec3f direction) {
-		return (direction - mVel).limit(mSettings.maxForce);
+        return (direction - mVel).limit(mSettings.maxForce);
 	}
 	
 	ofVec3f seekPosition(ofVec3f target) {
